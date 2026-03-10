@@ -69,12 +69,11 @@ uint8_t BH1750_I2C_ReceiveByte(void);   // 接收一个字节
 /**
  * @brief BH1750传感器操作函数
  */
-uint8_t BH1750_Sensor_Init(void);              // 初始化BH1750传感器，返回0成功，1失败
-float BH1750_Sensor_ReadLight(void);           // 读取光照强度（单位：lx），失败返回-1.0f
-void BH1750_SetPowerDown(void);                // 设置传感器为断电模式
-void BH1750_SetOneTimeMode(void);              // 设置传感器为一次测量模式
-void BH1750_SetContinuousMode(void);           // 设置传感器为连续测量模式
-uint8_t BH1750_CheckSensor(void);              // 检测传感器是否在线，返回0在线，1离线
-
+uint8_t BH1750_Sensor_Init(void);    // 初始化BH1750传感器，返回0成功，1失败
+float BH1750_Sensor_ReadLight(void); // 读取光照强度（单位：lx），失败返回-1.0f
+void BH1750_SetPowerDown(void);      // 设置传感器为断电模式
+void BH1750_SetOneTimeMode(void);    // 设置传感器为一次测量模式
+void BH1750_SetContinuousMode(void); // 设置传感器为连续测量模式
+uint8_t BH1750_CheckSensor(void);    // 检测传感器是否在线，返回0在线，1离线
 
 #endif /* __MY_I2C_BH1750_H */

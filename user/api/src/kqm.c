@@ -112,17 +112,17 @@ void Kqm_ReadData(void)
             }
             else
             {
-                printf("kqm 校验和错误\r\n");
+                // printf("kqm 校验和错误\r\n");
             }
         }
         else
         {
-            printf("kqm 帧头错误\r\n");
+            // printf("kqm 帧头错误\r\n");
         }
     }
     else if (kqm.over == 1)
     {
-        printf("kqm 数据长度不足\r\n");
+        // printf("kqm 数据长度不足\r\n");
     }
 
     // 重置接收状态

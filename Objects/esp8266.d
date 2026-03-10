@@ -46,5 +46,4 @@
 .\objects\esp8266.o: .\Mqtt\MQTTPacket.h
 .\objects\esp8266.o: .\user\api\inc\led.h
 .\objects\esp8266.o: .\user\api\inc\rtc.h
-.\objects\esp8266.o: .\user\api\inc\stm32_eval_spi_flash.h
 .\objects\esp8266.o: .\user\api\inc\flash.h

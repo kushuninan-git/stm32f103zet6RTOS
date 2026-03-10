@@ -1,21 +1,20 @@
 #include "delay.h"
 
-//usÑÓÊ±
+// usÑÓÊ±
 void Delay_nus(uint64_t time)
 {
-	while(time--)
+	while (time--)
 	{
 		Delay_1us();
 	}
 }
 
-//msÑÓÊ±
+// msÑÓÊ±
 void Delay_nms(uint64_t time)
 {
 	time *= 1000;
-	while(time--)
+	while (time--)
 	{
 		Delay_1us();
-	}	
+	}
 }
-

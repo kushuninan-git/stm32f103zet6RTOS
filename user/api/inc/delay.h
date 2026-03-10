@@ -23,21 +23,82 @@ typedef struct sensordata
 	uint8_t id;
 } SENSORDATA;
 
+#define Delay_1us() \
+	{               \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+		__nop();    \
+	}
 
-
-
-#define Delay_1us()	{\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();__nop();\
-	__nop();__nop();\
-}
-
-
-void Delay_nus(uint64_t time);//º¯ÊýÉùÃ÷
+void Delay_nus(uint64_t time); // º¯ÊýÉùÃ÷
 void Delay_nms(uint64_t time);
 #endif

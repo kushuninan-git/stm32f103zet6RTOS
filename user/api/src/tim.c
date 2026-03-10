@@ -1,10 +1,12 @@
 #include "tim.h"
-
+#include "lvgl.h"
 /************************* 全局1ms计时变量 *************************/
 // 定时器每1ms中断一次，该变量+1，全局所有模块可调用，精准无误差
-volatile uint16_t sys_ms = 0;
+volatile uint32_t sys_ms = 0;
+// FreeRTOS运行时间统计变量
+volatile uint32_t CPU_RunTime = 0;
 
-/************************* TIM2初始化函数 - 产生精准1ms中断 *************************/
+/************************* TIM6初始化函数 - 产生精准1ms中断 *************************/
 // 核心参数：72MHz主频 - 预分频71 - 自动重装999 = 精准1ms
 void TIM_Init(void)
 {
@@ -38,18 +40,13 @@ void TIM_Init(void)
 }
 
 /************************* TIM6中断服务函数 - 纯计时，无任何业务逻辑 *************************/
- //定时器天职：只维护全局1ms时基，谁需要计时谁自己用sys_ms计算，彻底解耦
- void TIM6_IRQHandler(void)
+// 定时器6中断服务函数
+void TIM6_IRQHandler(void)
 {
     if (TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)
     {
-        sys_ms++; // 核心：每1ms，全局计时变量+1
-
+			lv_tick_inc(1);
+        sys_ms++;                                   // 维持原有的1ms时基，保证按键等业务逻辑不变
         TIM_ClearITPendingBit(TIM6, TIM_IT_Update); // 必须清除中断标志位
     }
-} 
-/**
- * @brief
- *
- */
-
+}

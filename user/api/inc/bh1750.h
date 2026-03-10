@@ -33,9 +33,9 @@
 #define BH1750_GPIO_PORT GPIOB                   // SCL/SDA对应GPIOB口
 
 /********************* 函数声明 *********************/
-void BH1750_I2C1_Init(void);             // 硬件I2C1初始化：配置GPIO+I2C外设参数，为I2C通信做硬件准备
-ErrorStatus BH1750_HW_Init(void);           // BH1750传感器初始化
-void BH1750_HW_ReadData(void); // 读取光照强度
+void BH1750_I2C1_Init(void);      // 硬件I2C1初始化：配置GPIO+I2C外设参数，为I2C通信做硬件准备
+ErrorStatus BH1750_HW_Init(void); // BH1750传感器初始化
+void BH1750_HW_ReadData(void);    // 读取光照强度
 
 /**
  * @brief BH1750调试打印函数

@@ -1,6 +1,5 @@
 #include "usart1.h"
 
-
 /* ----------------- 全局变量 ----------------- */
 USART1_Data_t usart1_data = {0};
 

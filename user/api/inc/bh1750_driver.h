@@ -4,7 +4,6 @@
 #include "stm32f10x.h"
 #include "delay.h"
 
-
 // BH1750 设备地址
 #define BH1750_ADDR_GND 0x23 // ADDR 接 GND
 #define BH1750_ADDR_VCC 0x5C // ADDR 接 VCC

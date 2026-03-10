@@ -6,9 +6,7 @@
 #include "MQTTPacket.h" // MQTT协议包
 #include "led.h"        // LED灯控制
 #include "rtc.h"        // 实时时钟
-#include "stm32_eval_spi_flash.h"
 #include "flash.h"
-
 
 WIFI wifi = {.name = WIFI_SSID, .word = WIFI_PASS};
 
@@ -255,9 +253,9 @@ uint8_t ESP_SendCmdAndAck(uint8_t *cmd, uint8_t *ack, uint16_t outtime)
     // 等待响应或超时
     while (outtime--)
     {
-        Delay_nms(1); // 延时1毫秒
 
-        // 检查是否收到完整的一帧数据
+        vTaskDelay(1); // 延时1毫秒，释放CPU
+        Delay_nms(1);  // 延时1毫秒
         if (esp.over == 1)
         {
             // 在接收缓冲区中查找期望的关键词
@@ -331,15 +329,24 @@ void UpDataYun(void)
 
     case 4:
         // 步骤4：连接到指定的WiFi热点
-        // 使用头文件中定义的WIFI_SSID和WIFI_PASSWORD
+        // 使用全局变量wifi.name和wifi.word（从Flash读取或配网获取）
         {
-            // 从SPI Flash读取WiFi名称和密码
-            Load_WifiInfo();
+            // --- 新增调试代码：先扫描周围WiFi，确认能否搜到目标 ---
+            printf("Scanning WiFi List...\r\n");
+            ESP_ClearRxBuffer();
+            Uart3_TxStr("AT+CWLAP\r\n");                  // 发送扫描命令
+            Delay_nms(3000);                              // 等待3秒让扫描完成
+            printf("Scan Result:\r\n%s\r\n", esp.rxbuff); // 打印扫描结果
+            printf("--------------------------\r\n");
+            // ----------------------------------------------------
 
             // 拼接连接命令：AT+CWJAP="SSID","PASSWORD"
             uint8_t buff[100] = {0};
-            printf("wifi.name:%s,wifi.word:%s\r\n", wifi.name, wifi.word);
-            sprintf(buff, "AT+CWJAP=\"%s\",\"%s\"\r\n", wifi.name, wifi.word);
+            // 使用全局变量中的WiFi信息
+            sprintf((char *)buff, "AT+CWJAP=\"%s\",\"%s\"\r\n", wifi.name, wifi.word);
+
+            printf("Connecting to WiFi: %s\r\n", wifi.name);
+
             data = ESP_SendCmdAndAck(buff, (uint8_t *)"OK", 10000);
             if (data == 1)
                 num++;
@@ -349,6 +356,11 @@ void UpDataYun(void)
 
     case 5:
         // 步骤5：设置为单连接模式（CIPMUX=0）
+        // 如果当前有连接存在（link is builded），直接设置会报错
+        // 所以先尝试关闭所有连接
+        ESP_SendCmdAndAck((uint8_t *)"AT+CIPCLOSE\r\n", (uint8_t *)"OK", 500);
+        Delay_nms(500);
+
         // 单连接模式下一次只能建立一个TCP连接
         data = ESP_SendCmdAndAck((uint8_t *)CMD_CIPMUX_SINGLE, (uint8_t *)"OK", 1000);
         if (data == 1)
@@ -752,14 +764,14 @@ void ESP_AP(void)
         Delay_nms(100);
         Uart3_TxStr("AT+RST\r\n");
         Delay_nms(1000);
-        Uart3_TxStr("AT+CWSAP=\"XXXX\",\"123456789\",5,3\r\n");
+        Uart3_TxStr(CMD_CWSAP);
         Delay_nms(100);
         Uart3_TxStr("AT+CIFSR\r\n");
         Delay_nms(100); // ²éÑ¯IP
         Uart3_TxStr("AT+CIPMUX=1\r\n");
-        Delay_nms(100); // ¿ªÆô¶àÁ´½Ó
-        Uart3_TxStr("AT+CIPSERVER=1\r\n");
-        Delay_nms(100); // ¿ªÆô·þÎñÆ÷
+        Delay_nms(100);                    // ¿ªÆô¶àÁ´½Ó
+        Uart3_TxStr("AT+CIPSERVER=1\r\n"); // 使用默认端口333
+        Delay_nms(100);                    // ¿ªÆô·þÎñÆ÷
         ESP_ClearRxBuffer();
         num1++;
         break;
@@ -768,38 +780,69 @@ void ESP_AP(void)
         if (esp.over == 1)
         {
             uint8_t data = 0;
-            char *name = strstr((char *)esp.rxbuff, "wifiname");
-            if (name != NULL)
+            // 先清空wifi结构体，防止残留数据
+            memset(&wifi, 0, sizeof(wifi));
+
+            // ---------------------------------------------------------
+            // 鲁棒性更强的解析逻辑：不依赖固定偏移
+            // 1. 查找 "wifiname" 键
+            char *p_key = strstr((char *)esp.rxbuff, "\"wifiname\"");
+            if (p_key != NULL)
             {
-                uint8_t i = 0;
-                while (*(name + 11) != '"')
+                // 2. 从键开始向后找冒号
+                char *p_colon = strchr(p_key, ':');
+                if (p_colon != NULL)
                 {
-                    wifi.name[i++] = *(name + 11);
-                    name++;
+                    // 3. 从冒号开始向后找值的起始引号
+                    char *p_val_start = strchr(p_colon, '"');
+                    if (p_val_start != NULL)
+                    {
+                        p_val_start++; // 跳过起始引号，指向值的第一个字符
+
+                        // 4. 开始拷贝，直到遇到结束引号
+                        uint8_t i = 0;
+                        while (*p_val_start != '"' && i < sizeof(wifi.name) - 1)
+                        {
+                            wifi.name[i++] = *p_val_start++;
+                        }
+                        wifi.name[i] = '\0';
+                        data = 1;
+                    }
                 }
-                data = 1;
             }
-            char *word = strstr((char *)esp.rxbuff, "password");
-            if (word != NULL)
+
+            // 对 password 做同样的鲁棒性处理
+            p_key = strstr((char *)esp.rxbuff, "\"password\"");
+            if (p_key != NULL)
             {
-                uint8_t i = 0;
-                while (*(word + 11) != '"')
+                char *p_colon = strchr(p_key, ':');
+                if (p_colon != NULL)
                 {
-                    wifi.word[i++] = *(word + 11);
-                    word++;
+                    char *p_val_start = strchr(p_colon, '"');
+                    if (p_val_start != NULL)
+                    {
+                        p_val_start++; // 跳过起始引号
+                        uint8_t i = 0;
+                        while (*p_val_start != '"' && i < sizeof(wifi.word) - 1)
+                        {
+                            wifi.word[i++] = *p_val_start++;
+                        }
+                        wifi.word[i] = '\0';
+                        if (data == 1)
+                            data++;
+                    }
                 }
-                if (data == 1)
-                    data++;
             }
+            // ---------------------------------------------------------
 
             if (data == 2)
             {
-                printf("name:%s\t word:%s\r\n", wifi.name, wifi.word);
-
-                // 保存WiFi信息到Flash
+                printf("Parsed: SSID=%s, PASS=%s\r\n", wifi.name, wifi.word);
                 Save_WifiInfo();
                 esp.state = 2;
+                num = 1;
             }
+            ESP_ClearRxBuffer();
         }
         break;
     }

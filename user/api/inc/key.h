@@ -12,7 +12,7 @@
 
 // 按键参数配置
 #define KEY_FILTER_TIME 20 // 消抖时间(ms)
-#define KEY_LONG_TIME 800  // 长按判定时间(ms)
+#define KEY_LONG_TIME 3000 // 长按判定时间(ms)
 
 // 按键返回值定义
 #define KEY_NONE 0   // 无按键
@@ -46,7 +46,7 @@ typedef struct
 
     // 内部状态变量
     KeyState_t state;    // 当前状态
-    uint16_t press_time; // 按下时刻的时间戳
+    uint32_t press_time; // 按下时刻的时间戳
 } Key_t;
 
 // 函数声明

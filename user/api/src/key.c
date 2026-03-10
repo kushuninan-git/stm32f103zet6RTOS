@@ -1,6 +1,6 @@
 #include "key.h"
 #include "delay.h" // 引用sys_tick_cnt变量
-#include "tim.h" // 引用sys_ms变量
+#include "tim.h"   // 引用sys_ms变量
 
 /**
  * @brief 按键定义数组
@@ -92,7 +92,7 @@ uint8_t KEY_Scan(void)
             if (is_pressed)
             {
                 key->state = KEY_STATE_DEBOUNCE; // 进入消抖状态
-                key->press_time = sys_ms;  // 记录按下时间(使用系统ms计数)
+                key->press_time = sys_ms;        // 记录按下时间(使用系统ms计数)
             }
             break;
 

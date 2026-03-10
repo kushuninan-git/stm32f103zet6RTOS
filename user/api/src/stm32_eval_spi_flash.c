@@ -163,7 +163,7 @@ void sFLASH_Init(void)
 
 	// 高电平：W25Q64芯片未被选中，不参与通信
 	GPIO_SetBits(GPIOB, GPIO_Pin_12);
-	
+
 	/*!< Deselect the FLASH: Chip Select high */
 	sFLASH_CS_HIGH();
 

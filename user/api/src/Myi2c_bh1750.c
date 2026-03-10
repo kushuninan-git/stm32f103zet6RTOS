@@ -328,5 +328,3 @@ void BH1750_SetContinuousMode(void)
 
     Delay_nms(180); // 等待传感器稳定（连续高分辨率模式需要180ms）
 }
-
-

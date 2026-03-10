@@ -1,7 +1,6 @@
 #include "light.h"
 #include "usart1.h"
 
-
 /**
  * @brief  光照传感器ADC采集配置函数
  * @note   功能说明：初始化ADC1+DMA1通道1，实现对PA5(光照)和PC1(烟雾)引脚模拟电压的连续DMA采集
@@ -67,7 +66,7 @@ void Light_Init(void)
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;             /* ADC1数据寄存器地址 */
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)&addbuff;                  /* 内存缓冲区地址 */
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;                          /* 传输方向：外设→内存 */
-    DMA_InitStructure.DMA_BufferSize = 20;                                      /* 缓冲区大小：20个数据单元 */
+    DMA_InitStructure.DMA_BufferSize = 2;                                      /* 缓冲区大小：20个数据单元 */
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;            /* 外设地址增量：禁用 */
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;                     /* 内存地址增量：启用 */
     DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord; /* 外设数据宽度：半字(16位) */

@@ -101,7 +101,7 @@ extern ESP esp;
  * @brief 设置AP模式参数
  * @param %s 为WiFi密码，%s为端口号
  */
-#define CMD_CWSAP "AT+CWSAP=\"TCP\",\"%s\",%s\r\n"
+#define CMD_CWSAP "AT+CWSAP=\"XXXX\",\"1234567890\",5,3\r\n"
 
 // #define CMD_CWJAP "AT+CWJAP=\"" WIFI_SSID "\",\"" WIFI_PASS "\"\r\n" ///< 连接到指定WiFi热点
 

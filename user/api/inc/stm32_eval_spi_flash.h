@@ -109,10 +109,10 @@ extern "C"
   void sFLASH_DeInit(void);
   void sFLASH_Init(void);
   void sFLASH_EraseSector(uint32_t SectorAddr);
-  void sFLASH_EraseBulk(void);//不要用这个函数
+  void sFLASH_EraseBulk(void); // 不要用这个函数
   void sFLASH_WritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
-  void sFLASH_WriteBuffer(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);//写数据
-  void sFLASH_ReadBuffer(uint8_t *pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);//读数据
+  void sFLASH_WriteBuffer(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite); // 写数据
+  void sFLASH_ReadBuffer(uint8_t *pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);    // 读数据
   uint32_t sFLASH_ReadID(void);
   void sFLASH_StartReadSequence(uint32_t ReadAddr);
 

@@ -2900,23 +2900,25 @@ void LCD_ShowChinese(uint16_t x, uint16_t y, uint8_t size, uint8_t *p)
 {
 	uint8_t x0 = x;
 	uint8_t temp = 0;
-	uint8_t num = (size%8) ? (size/8+1) : (size/8);
+	uint8_t num = (size % 8) ? (size / 8 + 1) : (size / 8);
 	uint8_t a = 0;
-	
-	for(uint8_t i=0; i<size; i++) // 行循环
+
+	for (uint8_t i = 0; i < size; i++) // 行循环
 	{
-		for(uint8_t j=0; j<num; j++) // 一行有几个字模
+		for (uint8_t j = 0; j < num; j++) // 一行有几个字模
 		{
 			temp = *p;
-			if(j==num-1)
+			if (j == num - 1)
 			{
-				a=(size%8)?(size%8):8;
-			}else{
-				a=8;
+				a = (size % 8) ? (size % 8) : 8;
 			}
-			for(uint8_t k=0; k<a; k++)
+			else
 			{
-				if(temp & (0x1 << (7-k)))
+				a = 8;
+			}
+			for (uint8_t k = 0; k < a; k++)
+			{
+				if (temp & (0x1 << (7 - k)))
 					LCD_Fast_DrawPoint(x, y, BLACK);
 				else
 					LCD_Fast_DrawPoint(x, y, WHITE);
