@@ -1,74 +1,162 @@
-/**
- * @file flash.h
- * @brief W25Q64驱动头文件
- * @note 编码格式：UTF-8
- * @note
- */
-#ifndef __FLASH_H__
-#define __FLASH_H__
+//#ifndef _W25Q64_H_
+//#define _W25Q64_H_
 
+//#include "stm32f10x.h"
+
+//void W25q64_Config(void);
+//void Flash_Delete(uint32_t addr);
+//void Flash_Write_Enable(void);
+//void Flash_ReadData(uint8_t buff[],uint8_t len,uint32_t addr);
+//void Flash_Page(uint8_t buff[],uint8_t len,uint32_t addr);
+//#endif
+/**
+  ******************************************************************************
+  * @file    stm32_eval_spi_flash.h
+  * @author  MCD Application Team
+  * @version V4.5.0
+  * @date    07-March-2011
+  * @brief   This file contains all the functions prototypes for the stm32_eval_spi_flash
+  *          firmware driver.
+  ******************************************************************************
+  * @attention
+  *
+  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
+  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
+  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
+  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
+  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+  *
+  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
+  ******************************************************************************  
+  */ 
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __STM32_EVAL_SPI_FLASH_H
+#define __STM32_EVAL_SPI_FLASH_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
 #include "stm32f10x.h"
 
+/** @addtogroup Utilities
+  * @{
+  */
+  
+/** @addtogroup STM32_EVAL
+  * @{
+  */ 
+
+/** @addtogroup Common
+  * @{
+  */
+  
+/** @addtogroup STM32_EVAL_SPI_FLASH
+  * @{
+  */  
+
+/** @defgroup STM32_EVAL_SPI_FLASH_Exported_Types
+  * @{
+  */ 
 /**
- * @brief W25Q64初始化函数
- * @details 初始化SPI2和FLASH引脚
- * @param 无
- * @return 无
- */
-void Flash_Init(void);
+  * @}
+  */
+  
+/** @defgroup STM32_EVAL_SPI_FLASH_Exported_Constants
+  * @{
+  */
+/**
+  * @brief  M25P SPI Flash supported commands
+  */  
+#define sFLASH_CMD_WRITE          0x02  /*!< Write to Memory instruction */
+#define sFLASH_CMD_WRSR           0x01  /*!< Write Status Register instruction */
+#define sFLASH_CMD_WREN           0x06  /*!< Write enable instruction */
+#define sFLASH_CMD_READ           0x03  /*!< Read from Memory instruction */
+#define sFLASH_CMD_RDSR           0x05  /*!< Read Status Register instruction  */
+#define sFLASH_CMD_RDID           0x9F  /*!< Read identification */
+#define sFLASH_CMD_SE             0x20  /*!< Sector Erase instruction */
+#define sFLASH_CMD_BE             0xD8  /*!< Bulk Erase instruction */
+
+#define sFLASH_WIP_FLAG           0x01  /*!< Write In Progress (WIP) flag */
+
+#define sFLASH_DUMMY_BYTE         0xA5
+#define sFLASH_SPI_PAGESIZE       0x100
+
+#define sFLASH_M25P128_ID         0x202018
+#define sFLASH_M25P64_ID          0x202017
+
+#define WIFIADDR                  0x001000
+#define FONTADDR                  0x010000  //16ࠩ  
+/**
+  * @}
+  */ 
+  
+/** @defgroup STM32_EVAL_SPI_FLASH_Exported_Macros
+  * @{
+  */
+#define	sFLASH_SPI					 SPI2
+#define sFLASH_CS_GPIO_PORT  GPIOB
+#define sFLASH_CS_PIN        GPIO_Pin_12
+
+#define sFLASH_CS_LOW()       GPIO_ResetBits(sFLASH_CS_GPIO_PORT, sFLASH_CS_PIN)
+#define sFLASH_CS_HIGH()      GPIO_SetBits(sFLASH_CS_GPIO_PORT, sFLASH_CS_PIN)   
+/**
+  * @}
+  */ 
+  
+
+
+/** @defgroup STM32_EVAL_SPI_FLASH_Exported_Functions
+  * @{
+  */
+/**
+  * @brief  High layer functions
+  */
+void sFLASH_DeInit(void);
+void sFLASH_Init(void);
+void sFLASH_EraseSector(uint32_t SectorAddr);
+void sFLASH_EraseBulk(void);//Ԑϊ͢
+void sFLASH_WritePage(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
+void sFLASH_WriteBuffer(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
+void sFLASH_ReadBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);
+uint32_t sFLASH_ReadID(void);
+void sFLASH_StartReadSequence(uint32_t ReadAddr);
 
 /**
- * @brief 发送并接收一个字节数据
- * @details 等待发送缓冲区为空，确保之前的数据已经发送完成；
- * 发送数据到SPI2的数据寄存器，数据会被自动从发送缓冲区传输到SPI2的MOSI引脚；
- * 等待接收缓冲区非空，确保从设备已经发送了数据到MISO引脚；
- * 从接收缓冲区读取数据并返回。
- * @param data 要发送的数据
- * @return u8 接收到的数据
- */
-u8 SPI_SendAndRecive(u8 data);
+  * @brief  Low layer functions
+  */
+uint8_t sFLASH_ReadByte(void);
+uint8_t sFLASH_SendByte(uint8_t byte);
+uint16_t sFLASH_SendHalfWord(uint16_t HalfWord);
+void sFLASH_WriteEnable(void);
+void sFLASH_WaitForWriteEnd(void);
 
-/**
- * @brief 从W25Q64芯片读取数据
- * @details 拉低片选信号，选中W25Q64芯片；
- * 发送03H；
- * 发送24位地址；
- * 接收数据，存储到buff缓冲区；
- * 拉高片选信号，取消选中W25Q64芯片。
- * @param buff 存储读取数据的缓冲区
- * @param len 要读取的字节数
- * @param addr 要读取的起始地址
- */
-void Flash_ReadData(u8 buff[], u8 len, u32 addr);
-/**
- * @brief 写数据到W25Q64芯片
- * @details 拉低片选信号，选中W25Q64芯片；
- * 发送02H；
- * 发送24位地址；
- * 发送数据，从buff缓冲区读取数据；
- * 拉高片选信号，取消选中W25Q64芯片。
- * @param buff 存储要写入数据的缓冲区
- * @param len 要写入的字节数
- * @param addr 要写入的起始地址
- */
-void Flash_WriteData(u8 buff[], u8 len, u32 addr);
-/**
- * @brief 使能W25Q64写操作
- * @details 拉低片选信号，选中W25Q64芯片；
- * 发送06H；
- * 拉高片选信号，取消选中W25Q64芯片。
- * @param 无
- * @return 无
- */
-void Flash_WriteEnable(void);
-/**
- * @brief 擦除W25Q64芯片扇区擦除
- * @details 拉低片选信号，选中W25Q64芯片；
- * 发送20H；
- * 发送24位地址；
- * 拉高片选信号，取消选中W25Q64芯片。
- * @param addr 要擦除的起始地址
- */
-void Flash_Delete(u32 addr);
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* __STM32_EVAL_SPI_FLASH_H */
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */ 
+
+/**
+  * @}
+  */  
+
+/******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

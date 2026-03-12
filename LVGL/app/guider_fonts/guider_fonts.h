@@ -12,7 +12,7 @@ LV_FONT_DECLARE(lv_font_simsun_12)
 LV_FONT_DECLARE(lv_font_simsun_16)
 LV_FONT_DECLARE(lv_font_ArchitectsDaughter_16)
 LV_FONT_DECLARE(lv_font_SIMLI_16)
-
+LV_FONT_DECLARE(font16)
     
     #ifdef __cplusplus
     }

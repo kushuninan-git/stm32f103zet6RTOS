@@ -2427,7 +2427,7 @@ void LCD_Init(void)
 	LCD_Display_Dir(0); // 默认为竖屏
 	LCD_LED(1);			// 点亮背光
 
-	LCD_Clear(WHITE);
+	LCD_Clear(BLACK);
 }
 
 // 读取个某点的颜色值

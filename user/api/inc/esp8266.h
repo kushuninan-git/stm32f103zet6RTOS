@@ -172,7 +172,12 @@ void Uart3_TxStr(uint8_t buff[]);
 uint8_t MQTT_Connect(void);
 
 /**
- * @brief 发布MQTT消息
+ * @brief 发布MQTT消息（PUBLISH报文初始化）
+ * @details 将传感器数据发布到MQTT服务器（OneNET平台）
+ */
+void MQTT_PublishText(void);
+/**
+ * @brief 发布MQTT消息（PUBLISH报文）
  * @details 将传感器数据发布到MQTT服务器（OneNET平台）
  */
 void MQTT_Publish(void);

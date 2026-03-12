@@ -72,6 +72,9 @@ EventGroupHandle_t myevent_group = NULL;
 TimerHandle_t xTimer1 = NULL;
 TimerHandle_t wifitimer = NULL;
 TimerHandle_t aptimer = NULL;
+
+SENSORDATA current_sensor_data = {0};
+
 #define BIT_0 (1 << 0) // 状态
 #define BIT_4 (1 << 4)
 #define BIT_6 (1 << 6)
@@ -120,74 +123,77 @@ void LED2Task(void *pvParameters)
     for (;;)
     {
         LED2_ON();
-        vTaskDelay(400);
+        vTaskDelay(200);
         LED2_OFF();
-        vTaskDelay(400);
-    }
-}
-// LED3任务
-void LED3Task(void *pvParameters)
-{
-    for (;;)
-    {
         LED3_ON();
-        vTaskDelay(300);
+        vTaskDelay(200);
         LED3_OFF();
-        vTaskDelay(300);
-    }
-}
-// LED4任务
-void LED4Task(void *pvParameters)
-{
-    for (;;)
-    {
         LED4_ON();
         vTaskDelay(200);
         LED4_OFF();
         vTaskDelay(200);
     }
 }
+// LED3任务
+void LED3Task(void *pvParameters)
+{
+}
+// LED4任务
+void LED4Task(void *pvParameters)
+{
+}
 // key任务
-
 void KeyTask(void *pvParameters)
 {
     KEY_Init(); // 初始化按键
-    uint8_t Keyflage = 0;
-    // 切换lcgl界面计数
-    uint8_t lvgl_comunt = 1;
+    uint8_t Keyflag = 0;
+    // 切换lvgl界面计数
+    uint8_t lvgl_count = 1;
+    uint8_t wrong_count = 1;
     for (;;)
     {
         vTaskDelay(10);
-        Keyflage = KEY_Scan();
-        if (Keyflage == KEY1_PRESS)
+        Keyflag = KEY_Scan();
+        if (Keyflag == KEY1_PRESS)
         {
-            printf("KEY1 Pressed! Arming...\r\n");
-            // 当KEY1按下时,设置事件组BIT_0
-            xEventGroupSetBits(myevent_group, 0x01);
-        }
-        else if (Keyflage == KEY2_PRESS)
-        {
-            printf("KEY2 Pressed! Disarming...\r\n");
-            // 当KEY2按下时,清除事件组BIT_0
-            xEventGroupClearBits(myevent_group, 0x01);
-        }
-        if (Keyflage == KEY3_PRESS)
-        {
-            lvgl_comunt++;
-            if (lvgl_comunt > 2)
+            // 布防：设置BIT_0
+            wrong_count++;
+            if (wrong_count > 2)
             {
-                lvgl_comunt = 1;
+                wrong_count = 1;
             }
-            if (lvgl_comunt == 1)
+            if (wrong_count == 1)
+            {
+                xEventGroupSetBits(myevent_group, BIT_0);
+                printf("KEY1_PRESS: 布防\n");
+            }
+            else if (wrong_count == 2)
+            {
+                // 撤防：清除BIT_0
+                xEventGroupClearBits(myevent_group, BIT_0);
+                printf("KEY2_PRESS: 撤防\n");
+            }
+        }
+        else if (Keyflag == KEY2_PRESS)
+        {
+        }
+        if (Keyflag == KEY3_PRESS)
+        {
+            lvgl_count++;
+            if (lvgl_count > 2)
+            {
+                lvgl_count = 1;
+            }
+            if (lvgl_count == 1)
             {
                 lv_scr_load(guider_ui.screen_open);
             }
-            else if (lvgl_comunt == 2)
+            else if (lvgl_count == 2)
             {
                 lv_scr_load(guider_ui.screen_data);
             }
         }
-        else if (Keyflage == KEY4_PRESS)
+        else if (Keyflag == KEY4_PRESS)
         {
             esp.state = 1;
             lv_scr_load(guider_ui.screen_wifi);
@@ -224,10 +230,10 @@ void Dht11Task(void *pvParameters)
     for (;;)
     {
         // 进入临界区
-        taskENTER_CRITICAL();
+        // taskENTER_CRITICAL();
         Dht11_ReadData(); // 读取DHT11温湿度传感器数据
         // 退出临界区
-        taskEXIT_CRITICAL();
+        // taskEXIT_CRITICAL();
         sensor_data.dht11data[0] = dht.tem;
         sensor_data.dht11data[1] = dht.hum;
         sensor_data.id = SENSOR_ID_DHT11;
@@ -291,8 +297,8 @@ void LightTask(void *pvParameters)
     for (;;)
     {
         Light_ReadData(); // 读取光照传感器数据
-        sensor_data.lightdata[0] = addbuff[1];
-        sensor_data.lightdata[1] = addbuff[2];
+        sensor_data.lightdata[0] = addbuff[0];
+        sensor_data.lightdata[1] = addbuff[1];
         sensor_data.id = SENSOR_ID_LIGHT;
         // 发送到消息队列,一直等待直到发送成功
         xQueueSend(xQueue1, &sensor_data, portMAX_DELAY);
@@ -331,34 +337,87 @@ void Bh1750Task(void *pvParameters)
         vTaskDelay(1000); // 1秒读取一次（更频繁）
     }
 }
+
 // LCD任务
 void LCDTask(void *pvParameters)
 {
     // LCD_Init();    // 初始化LCD
     // LCD_UI_Init(); // 初始化LCD UI界面
+    u8 lcdbuff[50] = {0};
     SENSORDATA sensor_data = {0};
     for (;;)
     {
         // 从消息队列接收数据,一直等待直到接收成功
         xQueueReceive(xQueue1, &sensor_data, portMAX_DELAY);
+
+        // 更新全局传感器数据，供MQTT任务使用（实现"复制函数"）
+        switch (sensor_data.id)
+        {
+        case SENSOR_ID_DHT11:
+            current_sensor_data.dht11data[0] = sensor_data.dht11data[0];
+            current_sensor_data.dht11data[1] = sensor_data.dht11data[1];
+            break;
+        case SENSOR_ID_KQM:
+            current_sensor_data.kqmdata[0] = sensor_data.kqmdata[0];
+            current_sensor_data.kqmdata[1] = sensor_data.kqmdata[1];
+            current_sensor_data.kqmdata[2] = sensor_data.kqmdata[2];
+            break;
+        case SENSOR_ID_LIGHT:
+            current_sensor_data.lightdata[0] = sensor_data.lightdata[0];
+            current_sensor_data.lightdata[1] = sensor_data.lightdata[1];
+            break;
+        case SENSOR_ID_BH1750:
+            current_sensor_data.bh1750data = sensor_data.bh1750data;
+            break;
+        case SENSOR_ID_RTC:
+            memcpy(current_sensor_data.rtcdata, sensor_data.rtcdata, sizeof(sensor_data.rtcdata));
+            break;
+        }
+
         // 根据传感器ID更新LCD数据
         switch (sensor_data.id)
         {
         case SENSOR_ID_DHT11:
-            //  printf("tem: %.1f hum: %.1f\n", sensor_data.dht11data[0], sensor_data.dht11data[1]);
+            // printf("tem: %.1f hum: %.1f\n", sensor_data.dht11data[0], sensor_data.dht11data[1]);
+            memset(lcdbuff, 0, sizeof(lcdbuff));
+            sprintf((char *)lcdbuff, "温度:% .1f℃ ", sensor_data.dht11data[0]);
+            lv_label_set_text(guider_ui.screen_data_label_tem, (char *)lcdbuff);
 
+            sprintf((char *)lcdbuff, "湿度:% .1f%%", sensor_data.dht11data[1]);
+            lv_label_set_text(guider_ui.screen_data_label_hum, (char *)lcdbuff);
             break;
         case SENSOR_ID_KQM:
             // printf("KQM: co2: %.2f ch2o: %.2f voc: %.2f\n", sensor_data.kqmdata[0], sensor_data.kqmdata[1], sensor_data.kqmdata[2]);
+            memset(lcdbuff, 0, sizeof(lcdbuff));
+            sprintf((char *)lcdbuff, "CO2  :% .2fppm", sensor_data.kqmdata[0]);
+            lv_label_set_text(guider_ui.screen_data_label_CO2, (char *)lcdbuff);
+
+            sprintf((char *)lcdbuff, "CH2O :% .2fppm", sensor_data.kqmdata[1]);
+            lv_label_set_text(guider_ui.screen_data_label_CH2O, (char *)lcdbuff);
+
+            sprintf((char *)lcdbuff, "VOC  :% .2fppm", sensor_data.kqmdata[2]);
+            lv_label_set_text(guider_ui.screen_data_label_VOC, (char *)lcdbuff);
             break;
         case SENSOR_ID_LIGHT:
             // printf("light: %04d, yanwu: %04d\n", sensor_data.lightdata[0], sensor_data.lightdata[1]);
+            memset(lcdbuff, 0, sizeof(lcdbuff));
+            sprintf((char *)lcdbuff, "light:%02d lm", sensor_data.lightdata[0]);
+            lv_label_set_text(guider_ui.screen_data_label_lm, (char *)lcdbuff);
+
+            sprintf((char *)lcdbuff, "yanwu:%02d ppm", sensor_data.lightdata[1]);
+            lv_label_set_text(guider_ui.screen_data_label_yanwu, (char *)lcdbuff);
             break;
         case SENSOR_ID_BH1750:
             // printf("BH1750: %.1f lx \n", sensor_data.bh1750data);
+            memset(lcdbuff, 0, sizeof(lcdbuff));
+            sprintf((char *)lcdbuff, "BH:%.1f lx", sensor_data.bh1750data);
+            lv_label_set_text(guider_ui.screen_data_label_lx, (char *)lcdbuff);
             break;
         case SENSOR_ID_RTC:
             // printf("RTC: %04d, %02d, %02d, %02d, %02d, %02d, %d\n", sensor_data.rtcdata[0], sensor_data.rtcdata[1], sensor_data.rtcdata[2], sensor_data.rtcdata[3], sensor_data.rtcdata[4], sensor_data.rtcdata[5], sensor_data.rtcdata[6]);
+            memset(lcdbuff, 0, sizeof(lcdbuff));
+            sprintf((char *)lcdbuff, "%04d-%02d-%02d %02d:%02d", sensor_data.rtcdata[0], sensor_data.rtcdata[1], sensor_data.rtcdata[2], sensor_data.rtcdata[3], sensor_data.rtcdata[4]);
+            lv_label_set_text(guider_ui.screen_data_label_time, (char *)lcdbuff);
             break;
         default:
             break;
@@ -368,7 +427,7 @@ void LCDTask(void *pvParameters)
 // wifi任务
 void WifiTask(void *pvParameters)
 {
-    Flash_Init();
+
     Uart3_Init();
     for (;;)
     {
@@ -377,7 +436,7 @@ void WifiTask(void *pvParameters)
         {
             ESP_AP();
         }
-        else if (esp.state >= 2)
+        else if (esp.state >= 2 && esp.state < 5)
         {
             UpDataYun();
         }
@@ -390,21 +449,19 @@ void WifiTask(void *pvParameters)
 // lvgl任务
 void LVGLTask(void *pvParameters)
 {
-
     while (1)
     {
         lv_task_handler();
         vTaskDelay(100);
     }
 }
-
 // 定时器回调函数
-void vTimerCallback(TimerHandle_t xTimer)
-{
-    // 获取定时器ID
-    uint32_t ulCount = (uint32_t)pvTimerGetTimerID(xTimer);
-    // printf("Timer ID: %d\n", ulCount);
-}
+// void vTimerCallback(TimerHandle_t xTimer)
+//{
+//    // 获取定时器ID
+//    uint32_t ulCount = (uint32_t)pvTimerGetTimerID(xTimer);
+//    // printf("Timer ID: %d\n", ulCount);
+//}
 // WIFI回调函数
 void wifibackFunction(TimerHandle_t xTimer)
 {
@@ -415,7 +472,7 @@ void wifibackFunction(TimerHandle_t xTimer)
         if (esp.state == 0)
         {
             num++;
-            if (num >= 5)
+            if (num >= 10)
             {
                 esp.state = 2;
                 printf("选择sta模式\r\n");
@@ -423,16 +480,19 @@ void wifibackFunction(TimerHandle_t xTimer)
         }
     }
     if (esp.state == 5)
+    {
         MQTT_REQ();
+    }
+    static uint32_t report_cnt = 0;
 }
 // 任务状态显示定时器回调函数
 uint8_t CPU_RunInfo[400] = {0};
-void vCallbackFunction(TimerHandle_t xTimer)
+void vCallbackFunction(TimerHandle_t xTimer1)
 {
     memset(CPU_RunInfo, 0, 400);
     vTaskList((char *)&CPU_RunInfo);
     printf("---------------------------------------------\r\n");
-    printf("任务名 任务状态 优先级 任务序号\r\n");
+    printf("任务名 任务状态 优先级 剩余栈 任务序号\r\n");
     printf("%s", CPU_RunInfo);
     printf("---------------------------------------------\r\n");
 }
@@ -441,75 +501,76 @@ int main(void)
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); // 中断分组2（2位抢占+2位子优先级）
     USART1_Init();                                  // 初始化串口1
     TIM_Init();                                     // 初始化定时器
-
+    sFLASH_Init();
     lv_init();           // 初始化lvgl
     lv_port_disp_init(); // 初始化lvgl显示接口
 
     setup_scr_screen_open(&guider_ui);  // 初始化打开界面
-    lv_scr_load(guider_ui.screen_open); // 加载欢迎界面
     setup_scr_screen_data(&guider_ui);  // 初始化数据界面
     setup_scr_screen_wifi(&guider_ui);  // 初始化wifi界面
-
+    lv_scr_load(guider_ui.screen_open); // 加载欢迎界面
     // 创建队列，用于存储传感器数据，队列长度为5，每个元素大小为SENSORDATA结构体大小
     xQueue1 = xQueueCreate(5, sizeof(SENSORDATA));
-    //    // 创建信号量
-    //    xSemaphore1 = xSemaphoreCreateBinary();
-    //    // 创建事件组
-    //    myevent_group = xEventGroupCreate();
-    //    // 创建软件定时器
-    //    xTimer1 = xTimerCreate(
-    //        "Timer1",        // 定时器名称
-    //        1000,            // 定时器周期，单位为系统时钟周期数（1000ms）
-    //        pdTRUE,          // 自动重装载模式
-    //        (void *)0,       // 传递给定时器回调函数的参数
-    //        vTimerCallback); // 定时器回调函数
-    //    wifitimer = xTimerCreate("wifiTimer", 50000, pdTRUE, (void *)1, wifibackFunction);
-    //    aptimer = xTimerCreate("apTimer", 1000, pdTRUE, (void *)2, wifibackFunction);
-    //    // 启动定时器,第二个参数为阻塞时间,这里设置为0,表示不阻塞
-    //    xTimerStart(xTimer1, 0);
-    //    xTimerStart(wifitimer, 0);
-    //    xTimerStart(aptimer, 0);
-    //    // 4. 创建任务
+    // 创建信号量
+    xSemaphore1 = xSemaphoreCreateBinary();
+
+    // 创建事件组
+    myevent_group = xEventGroupCreate();
+    // 创建软件定时器
+    // xTimer1 = xTimerCreate(
+    //     "Timer1",           // 定时器名称
+    //     1000,               // 定时器周期，单位为系统时钟周期数（1000ms）
+    //     pdTRUE,             // 自动重装载模式
+    //     (void *)0,          // 传递给定时器回调函数的参数
+    //     vCallbackFunction); // 定时器回调函数
+    wifitimer = xTimerCreate("wifiTimer", 50000, pdTRUE, (void *)1, wifibackFunction);
+    aptimer = xTimerCreate("apTimer", 1000, pdTRUE, (void *)2, wifibackFunction);
+    // 启动定时器,第二个参数为阻塞时间,这里设置为0,表示不阻塞
+    // xTimerStart(xTimer1, 0);
+    xTimerStart(wifitimer, 0);
+    xTimerStart(aptimer, 0);
+    // 4. 创建任务
     BaseType_t xReturned; // 任务创建返回值变量
 
-    // // 创建LED1任务
-    // xReturned = xTaskCreate(
-    //     LED1Task,         // 任务主体函数名称
-    //     "led1",           // 任务的别名
-    //     128,              // 任务站空间  128*4
-    //     NULL,             // 任务主体函数传参
-    //     1,                // 任务优先级
-    //     &Led1TaskHandle); // 任务句柄
-    // // 创建LED2任务
-    // xReturned = xTaskCreate(LED2Task, "led2", 128, NULL, 1, &Led2TaskHandle);
-    // // 创建LED3任务
-    // xReturned = xTaskCreate(LED3Task, "led3", 128, NULL, 1, &Led3TaskHandle);
-    // // 创建LED4任务
-    // xReturned = xTaskCreate(LED4Task, "led4", 128, NULL, 1, &Led4TaskHandle);
+    // 创建LED1任务
+    xReturned = xTaskCreate(
+        LED1Task,         // 任务主体函数名称
+        "led1",           // 任务的别名
+        64,               // 任务站空间  128*4
+        NULL,             // 任务主体函数传参
+        1,                // 任务优先级
+        &Led1TaskHandle); // 任务句柄
+    // 创建LED2任务
+    xReturned = xTaskCreate(LED2Task, "led2", 64, NULL, 1, &Led2TaskHandle);
+    // 创建LED3任务
+    // xReturned = xTaskCreate(LED3Task, "led3", 64, NULL, 1, &Led3TaskHandle);
+    // 创建LED4任务
+    // xReturned = xTaskCreate(LED4Task, "led4", 64, NULL, 1, &Led4TaskHandle);
     // 创建key任务
-    xReturned = xTaskCreate(KeyTask, "key", 128, NULL, 3, &KeyTaskHandle);
+    xReturned = xTaskCreate(KeyTask, "key", 64, NULL, 3, &KeyTaskHandle);
     // 创建DHT11任务
-    xReturned = xTaskCreate(Dht11Task, "dht11", 256, NULL, 2, &Dht11TaskHandle);
-    // // 创建kqm任务
-    // xReturned = xTaskCreate(KqmTask, "kqm", 128, NULL, 2, &KqmTaskHandle);
-    // // 创建光照任务
-    // xReturned = xTaskCreate(LightTask, "light", 128, NULL, 2, &LightTaskHandle);
-    // // 创建BH1750任务
-    // xReturned = xTaskCreate(Bh1750Task, "bh1750", 128, NULL, 2, &Bh1750TaskHandle);
-    // // 创建RTC时间更新任务
-    // xReturned = xTaskCreate(RTC_Task, "rtc", 512, NULL, 2, &RTC_TaskHandle);
+    xReturned = xTaskCreate(Dht11Task, "dht11", 80, NULL, 2, &Dht11TaskHandle);
+    // 创建kqm任务
+    xReturned = xTaskCreate(KqmTask, "kqm", 80, NULL, 2, &KqmTaskHandle);
+    // 创建光照任务
+    xReturned = xTaskCreate(LightTask, "light", 80, NULL, 2, &LightTaskHandle);
+    // 创建BH1750任务
+    xReturned = xTaskCreate(Bh1750Task, "bh1750", 80, NULL, 2, &Bh1750TaskHandle);
+    // 创建RTC时间更新任务
+    xReturned = xTaskCreate(RTC_Task, "rtc", 128, NULL, 2, &RTC_TaskHandle);
     // 创建LCD任务
-    xReturned = xTaskCreate(LCDTask, "lcd", 512, NULL, 4, &LCDTaskHandle);
-    // // 创建wifi任务
-    // xReturned = xTaskCreate(WifiTask, "wifi", 512, NULL, 4, &WifiTaskHandle);
+    xReturned = xTaskCreate(LCDTask, "lcd", 256, NULL, 4, &LCDTaskHandle);
+    // 创建wifi任务
+    xReturned = xTaskCreate(WifiTask, "wifi", 320, NULL, 4, &WifiTaskHandle);
     // 创建lvgl任务
     xReturned = xTaskCreate(LVGLTask, "lvgl", 512, NULL, 4, &LVGLTaskHandle);
     // 启动rtos, 开始调度任务.
     vTaskStartScheduler();
 }
 
-void vApplicationStackOverflowHook(void)
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
+    printf("Stack Overflow in task: %s\r\n", pcTaskName);
     while (1)
     {
     }

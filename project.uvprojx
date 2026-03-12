@@ -668,11 +668,6 @@
               <FilePath>.\user\api\src\flash.c</FilePath>
             </File>
             <File>
-              <FileName>stm32_eval_spi_flash.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\api\src\stm32_eval_spi_flash.c</FilePath>
-            </File>
-            <File>
               <FileName>bsp_lcd.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\api\src\bsp_lcd.c</FilePath>
@@ -861,6 +856,11 @@
               <FileName>lv_font_simsun_16.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\LVGL\app\guider_fonts\lv_font_simsun_16.c</FilePath>
+            </File>
+            <File>
+              <FileName>lvgl_font20.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\LVGL\app\lvgl_font20.c</FilePath>
             </File>
           </Files>
         </Group>

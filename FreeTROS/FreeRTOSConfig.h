@@ -46,10 +46,10 @@
 
 #define configSUPPORT_DYNAMIC_ALLOCATION 1 // Ö§³Ö¶¯Ì¬ÄÚ´æÉêÇë
 #define configUSE_MALLOC_FAILED_HOOK 0     // Ê¹ÓÃÄÚ´æÉêÇëÊ§°Ü¹³×Óº¯Êý
-#define configCHECK_FOR_STACK_OVERFLOW 1   // ´óÓÚ 0 Ê±ÆôÓÃ¶ÑÕ»Òç³ö¼ì²â¹¦ÄÜ£¬
-                                           // Èç¹ûÊ¹ÓÃ´Ë¹¦ÄÜÓÃ»§±ØÐëÌá¹©Ò»¸öÕ»Òç³ö¹³×Óº¯Êý
-                                         // Èç¹ûÊ¹ÓÃµÄ»°´ËÖµ¿ÉÒÔÎª 1 »òÕß 2£¬Òò
-                                         // ÎªÓÐÁ½ÖÖÕ»Òç³ö¼ì²â·½·¨
+#define configCHECK_FOR_STACK_OVERFLOW 2   // 大于 0 时启用堆栈溢出检测功能，
+                                           // 如果使用此功能用户必须提供一个栈溢出钩子函数
+                                         // 如果使用的话此值可以为 1 或者 2，因
+                                         // 为有两种栈溢出检测方法
 
 #define configGENERATE_RUN_TIME_STATS 1 // ÆôÓÃÔËÐÐÊ±¼äÍ³¼Æ¹¦ÄÜ
 #define configUSE_STATS_FORMATTING_FUNCTIONS 1

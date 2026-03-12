@@ -1,12 +1,20 @@
 #include "esp8266.h"
 #include "stdio.h"      // 标准输入输出（用于printf）
 #include "string.h"     // 字符串处理函数
+#include "stdint.h"     // 整数类型定义（如uint32_t）
 #include "stdlib.h"     // 标准库（用于atoi等）
 #include "delay.h"      // 延时函数
 #include "MQTTPacket.h" // MQTT协议包
 #include "led.h"        // LED灯控制
 #include "rtc.h"        // 实时时钟
 #include "flash.h"
+#include "gui_guider.h"
+#include "lvgl.h"
+#include "lv_port_disp.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
+extern SENSORDATA current_sensor_data;
 
 WIFI wifi = {.name = WIFI_SSID, .word = WIFI_PASS};
 
@@ -331,18 +339,10 @@ void UpDataYun(void)
         // 步骤4：连接到指定的WiFi热点
         // 使用全局变量wifi.name和wifi.word（从Flash读取或配网获取）
         {
-            // --- 新增调试代码：先扫描周围WiFi，确认能否搜到目标 ---
-            printf("Scanning WiFi List...\r\n");
-            ESP_ClearRxBuffer();
-            Uart3_TxStr("AT+CWLAP\r\n");                  // 发送扫描命令
-            Delay_nms(3000);                              // 等待3秒让扫描完成
-            printf("Scan Result:\r\n%s\r\n", esp.rxbuff); // 打印扫描结果
-            printf("--------------------------\r\n");
-            // ----------------------------------------------------
 
-            // 拼接连接命令：AT+CWJAP="SSID","PASSWORD"
             uint8_t buff[100] = {0};
             // 使用全局变量中的WiFi信息
+            Load_WifiInfo();
             sprintf((char *)buff, "AT+CWJAP=\"%s\",\"%s\"\r\n", wifi.name, wifi.word);
 
             printf("Connecting to WiFi: %s\r\n", wifi.name);
@@ -472,16 +472,18 @@ void UpDataYun(void)
     {
         // 步骤11：周期性任务循环
         // 此步骤会反复执行，不断上报数据到云端
-        static int data1 = 17950; // Modified: Start close to threshold for quick first publish
+        static int data1 = 0; // Modified: Start from 0
         data1++;
 
-        // 每隔约18000次循环（约30秒，假设主循环10ms一次）
+        // 每隔约100次循环（约10秒，假设主循环100ms一次）
         // 或者当状态异常时，重新发布一次数据
-        if (data1 >= 18000 || esp.state == 0)
+        if (data1 >= 100 || esp.state == 0)
         {
             data1 = 0; // Reset counter
             // esp.state = 1; // FIX: Do NOT reset state to 1, stay connected!
             MQTT_Publish(); // 发布传感器数据到MQTT服务器
+            printf("成功发布传感器数据到MQTT服务器\r\n");
+            // MQTT_PublishText();
         }
     }
     break;
@@ -498,7 +500,7 @@ uint8_t MQTT_Connect(void)
 {
     ESP_ClearRxBuffer(); // 清除接收缓冲区，准备接收MQTT响应
 
-    uint8_t txbuff[512] = {0};                                        // 发送缓冲区
+    static uint8_t txbuff[512] = {0};                                 // 发送缓冲区（使用static避免栈溢出）
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer; // 连接参数结构体
 
     // 配置MQTT连接参数
@@ -540,35 +542,61 @@ uint8_t MQTT_Connect(void)
 }
 
 /**
- * @brief 发布MQTT消息（PUBLISH报文）
+ * @brief 发布MQTT消息（PUBLISH报文初始化）
  * @details 将传感器数据封装成JSON格式，通过MQTT PUBLISH报文发送到云端（OneNET平台）
  *          上报的参数包括：LED状态、温度、湿度、CO2、甲醛、光照等
  */
+#include "stdint.h" // 确保int32_t等类型可用
+
 void MQTT_Publish(void)
 {
-    ESP_ClearRxBuffer(); // 清除接收缓冲区
+    ESP_ClearRxBuffer();
+    static uint8_t txbuff[512] = {0};
+    MQTTString topicString = MQTTString_initializer;
+    static char payload[512];
 
-    uint8_t txbuff[512] = {0};                       // 发送缓冲区
-    MQTTString topicString = MQTTString_initializer; // 主题字符串
+    // 1. 数值强转+范围校验（重点修复lig）
+    double temp_val = (double)current_sensor_data.dht11data[0];
+    int32_t hum_val = (int32_t)current_sensor_data.dht11data[1];
+    float ch20_val = current_sensor_data.kqmdata[1];
+    double co2_val = (double)current_sensor_data.kqmdata[0];
+    co2_val = (co2_val < 0) ? 0 : (co2_val > 5000) ? 5000
+                                                   : co2_val;
+    // 关键：lig保留一位小数（匹配步长0.1，使用float类型）
+    float lig_val = current_sensor_data.bh1750data;
+    // 既然要修改物模型，这里就不需要强制取整了，直接使用原始浮点值
+    // lig_val = roundf(lig_val);
 
-    // 定义要上传的JSON数据（传感器数据）
-    // JSON格式符合OneNET物模型的属性上报规范
-    uint8_t payload[] = "{\"id\":\"123\",\"version\":\"1.0\",\"params\":\
-{\"led\":{\"value\":1},\
-\"temp\":{\"value\":23.6},\
-\"hum\":{\"value\":24},\
-\"ch20\":{\"value\":0.02},\
-\"co2\":{\"value\":760.0},\
-\"lig\":{\"value\":320.0},\
-\"temp_max\":{\"value\":26.0},\
-\"voc\":{\"value\":0.05}\
-}}";
+    float voc_val = current_sensor_data.kqmdata[2];
 
-    // 设置发布主题为属性上报主题
+    // Debug: 打印lig_val的值确认非0
+    printf("Debug: lig_val = %.4f\r\n", lig_val);
+
+    // 2. 格式化JSON
+    // 为了防止sprintf参数对齐问题导致浮点数解析错误，建议显式强转为double
+    sprintf(payload, "{\"id\":\"123\",\"version\":\"1.0\",\"params\":{"
+                     "\"led\":{\"value\":%d},"
+                     "\"temp\":{\"value\":%.1f},"
+                     "\"hum\":{\"value\":%d},"
+                     "\"ch20\":{\"value\":%.2f},"
+                     "\"co2\":{\"value\":%.1f},"
+                     "\"lig\":{\"value\":%.1f}," // 浮点数格式，步长0.1
+                     "\"temp_max\":{\"value\":26.0},"
+                     "\"voc\":{\"value\":%.2f}"
+                     "}}",
+            1,
+            temp_val,
+            hum_val,
+            (double)ch20_val, // ch20也强转double
+            co2_val,
+            (double)lig_val,  // 显式强转为double，确保参数传递正确
+            (double)voc_val); // voc也强转double
+
+    // Debug: 打印完整的Payload检查
+    printf("Payload: %s\r\n", payload);
+
+    // 3. 序列化+发送（原有逻辑不变）
     topicString.cstring = MQTT_TOPIC_POST;
-
-    // 序列化PUBLISH报文
-    // 参数：缓冲区、QoS=1、retain=0、packetid=0x1111
     int len = MQTTSerialize_publish(txbuff, 512, 0, 1, 0, 0x1111,
                                     topicString, (unsigned char *)payload,
                                     strlen((char *)payload));
@@ -578,7 +606,7 @@ void MQTT_Publish(void)
     // 发送PUBLISH报文
     Uart3_TxBuff(txbuff, len);
 
-    Delay_nms(1000); // 等待服务器响应
+    vTaskDelay(pdMS_TO_TICKS(1000)); // 释放CPU，让其他任务运行
 
     // 打印响应（用于调试）
     printf("MQTT Publish Resp: %02X %02X %02X %02X\r\n",
@@ -592,7 +620,58 @@ void MQTT_Publish(void)
             printf("publish成功\r\n");
     }
 }
+///**
+// * @brief 发布MQTT消息（PUBLISH报文初始化）
+// * @details 将传感器数据封装成JSON格式，通过MQTT PUBLISH报文发送到云端（OneNET平台）
+// *          上报的参数包括：LED状态、温度、湿度、CO2、甲醛、光照等
+// */
+// void MQTT_PublishText(void)
+//{
+//    ESP_ClearRxBuffer(); // 清除接收缓冲区
 
+//    static uint8_t txbuff[512] = {0};                // 发送缓冲区（static避免栈溢出）
+//    MQTTString topicString = MQTTString_initializer; // 主题字符串
+
+//    // 定义要上传的JSON数据（传感器数据）
+//    uint8_t payload[] = "{\"id\":\"123\",\"version\":\"1.0\",\"params\":\
+//{\"led\":{\"value\":1},\
+//\"temp\":{\"value\":23.6},\
+//\"hum\":{\"value\":24},\
+//\"ch20\":{\"value\":0.06},\
+//\"co2\":{\"value\":760.0 },\
+//\"lig\":{\"value\":320.0},\
+//\"temp_max\":{\"value\":26.0},\
+//\"voc\":{\"value\":0.05}\
+//}}";
+
+//    // 设置发布主题为属性上报主题
+//    topicString.cstring = MQTT_TOPIC_POST;
+
+//    // 序列化PUBLISH报文
+//    // 参数：缓冲区、QoS=1、retain=0、packetid=0x1111
+//    int len = MQTTSerialize_publish(txbuff, 512, 0, 1, 0, 0x1111,
+//                                    topicString, (unsigned char *)payload,
+//                                    strlen((char *)payload));
+//    if (len <= 0)
+//        printf("publish包序列化失败\r\n");
+
+//    // 发送PUBLISH报文
+//    Uart3_TxBuff(txbuff, len);
+
+//    Delay_nms(1000); // 等待服务器响应
+
+//    // 打印响应（用于调试）
+//    printf("MQTT Publish Resp: %02X %02X %02X %02X\r\n",
+//           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+
+//    // 解析PUBACK响应（QoS=1时服务器会返回PUBACK）
+//    // 格式：0x40 0x02 0x00(packet_id)
+//    if (esp.rxbuff[0] == 0x40 && esp.rxbuff[1] == 0x02)
+//    {
+//        if (esp.rxbuff[3] == 0x11) // packet_id = 0x1111 的低字节
+//            printf("publish成功\r\n");
+//    }
+//}
 /**
  * @brief 订阅MQTT主题（SUBSCRIBE报文）
  * @details 订阅平台下发命令的主题，这样云端可以向设备发送控制指令
@@ -602,7 +681,7 @@ void MQTT_Subscribe(void)
 {
     ESP_ClearRxBuffer(); // 清除接收缓冲区
 
-    uint8_t txbuff[512] = {0};                       // 发送缓冲区
+    static uint8_t txbuff[512] = {0};                // 发送缓冲区（static避免栈溢出）
     MQTTString topicString = MQTTString_initializer; // 主题字符串
     int qos = 1;                                     // QoS等级：至少一次投递
 
@@ -638,7 +717,6 @@ void MQTT_Subscribe(void)
         }
     }
 }
-
 /**
  * @brief 发送MQTT心跳包（PINGREQ报文）
  * @details 用于保持与MQTT服务器的连接活跃
@@ -658,7 +736,6 @@ void MQTT_REQ(void)
     if (esp.rxbuff[0] == 0xD0)
         printf("mqtt 心跳成功\r\n");
 }
-
 /**
  * @brief 处理云端下发的数据
  * @details 解析从MQTT主题收到的命令消息，执行相应操作
@@ -685,7 +762,6 @@ void YunDataHandle(void)
         ESP_ClearRxBuffer();
     }
 }
-
 /**
  * @brief 解析拼多多服务器返回的时间数据
  * @details 解析HTTP响应中的JSON数据，提取server_time字段的时间戳
@@ -730,6 +806,7 @@ uint8_t ESP_ParsePinduoduoData(void)
                 printf("Valid Time! Updating RTC to: %d\r\n", sec);
                 // 转换为北京时间（UTC+8）：加上8小时的秒数
                 RTC_UpData_Time(sec + 8 * 3600);
+                lv_scr_load(guider_ui.screen_data);
                 return 1; // 解析成功
             }
             else
@@ -841,6 +918,8 @@ void ESP_AP(void)
                 Save_WifiInfo();
                 esp.state = 2;
                 num = 1;
+                // 配网成功，自动跳转到数据界面
+                lv_scr_load(guider_ui.screen_data);
             }
             ESP_ClearRxBuffer();
         }
