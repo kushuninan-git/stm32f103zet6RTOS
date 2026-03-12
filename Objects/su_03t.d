@@ -39,3 +39,5 @@
 .\objects\su_03t.o: .\user\api\inc\jx_uart_send.h
 .\objects\su_03t.o: .\user\api\inc\kqm.h
 .\objects\su_03t.o: .\user\api\inc\dht11.h
+.\objects\su_03t.o: .\user\api\inc\bh1750.h
+.\objects\su_03t.o: .\user\api\inc\delay.h

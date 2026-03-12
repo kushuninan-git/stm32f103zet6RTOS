@@ -643,11 +643,6 @@
               <FilePath>.\user\api\src\dht11.c</FilePath>
             </File>
             <File>
-              <FileName>jx_uart_send.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\api\src\jx_uart_send.c</FilePath>
-            </File>
-            <File>
               <FileName>bh1750.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\api\src\bh1750.c</FilePath>
@@ -691,6 +686,11 @@
               <FileName>tim.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\api\src\tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>jx_uart_send.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\api\src\jx_uart_send.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -1,4 +1,5 @@
 #include "esp8266.h"
+#include "main.h"       // Includes FreeRTOS headers and task handle
 #include "stdio.h"      // 标准输入输出（用于printf）
 #include "string.h"     // 字符串处理函数
 #include "stdint.h"     // 整数类型定义（如uint32_t）
@@ -218,6 +219,14 @@ void USART3_IRQHandler(void)
         esp.over = 1;
         data = USART3->SR;
         data = USART3->DR;
+
+        // 通知云数据解析任务处理数据
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        if (YunDataHandleTaskHandle != NULL)
+        {
+            vTaskNotifyGiveFromISR(YunDataHandleTaskHandle, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
     }
 }
 
@@ -483,6 +492,7 @@ void UpDataYun(void)
             // esp.state = 1; // FIX: Do NOT reset state to 1, stay connected!
             MQTT_Publish(); // 发布传感器数据到MQTT服务器
             printf("成功发布传感器数据到MQTT服务器\r\n");
+            esp.state = 5;
             // MQTT_PublishText();
         }
     }
@@ -556,6 +566,7 @@ void MQTT_Publish(void)
     static char payload[512];
 
     // 1. 数值强转+范围校验（重点修复lig）
+    int led_status = 0; // 0:关 1:开
     double temp_val = (double)current_sensor_data.dht11data[0];
     int32_t hum_val = (int32_t)current_sensor_data.dht11data[1];
     float ch20_val = current_sensor_data.kqmdata[1];
@@ -568,9 +579,10 @@ void MQTT_Publish(void)
     // lig_val = roundf(lig_val);
 
     float voc_val = current_sensor_data.kqmdata[2];
+    
 
     // Debug: 打印lig_val的值确认非0
-    printf("Debug: lig_val = %.4f\r\n", lig_val);
+    // printf("Debug: lig_val = %.4f\r\n", lig_val);
 
     // 2. 格式化JSON
     // 为了防止sprintf参数对齐问题导致浮点数解析错误，建议显式强转为double
@@ -593,7 +605,7 @@ void MQTT_Publish(void)
             (double)voc_val); // voc也强转double
 
     // Debug: 打印完整的Payload检查
-    printf("Payload: %s\r\n", payload);
+    // printf("Payload: %s\r\n", payload);
 
     // 3. 序列化+发送（原有逻辑不变）
     topicString.cstring = MQTT_TOPIC_POST;
@@ -609,8 +621,8 @@ void MQTT_Publish(void)
     vTaskDelay(pdMS_TO_TICKS(1000)); // 释放CPU，让其他任务运行
 
     // 打印响应（用于调试）
-    printf("MQTT Publish Resp: %02X %02X %02X %02X\r\n",
-           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+    // printf("MQTT Publish Resp: %02X %02X %02X %02X\r\n",
+    //        esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
 
     // 解析PUBACK响应（QoS=1时服务器会返回PUBACK）
     // 格式：0x40 0x02 0x00(packet_id)
@@ -724,17 +736,23 @@ void MQTT_Subscribe(void)
  */
 void MQTT_REQ(void)
 {
-    ESP_ClearRxBuffer(); // 清除接收缓冲区
+    ESP_ClearRxBuffer();
 
-    // PINGREQ心跳报文：固定为2字节 0xC0 0x00
     uint8_t buff[2] = {0xC0, 0x00};
-    Uart3_TxBuff(buff, 2); // 发送心跳包
+    Uart3_TxBuff(buff, 2);
 
-    Delay_nms(1000); // 等待服务器响应
+    vTaskDelay(pdMS_TO_TICKS(500));
 
-    // 解析PINGRESP响应：0xD0 0x00
-    if (esp.rxbuff[0] == 0xD0)
+    if (esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
+    {
         printf("mqtt 心跳成功\r\n");
+    }
+    else if (esp.over == 1)
+    {
+        printf("mqtt 心跳响应异常: %02X %02X\r\n", esp.rxbuff[0], esp.rxbuff[1]);
+    }
+
+    ESP_ClearRxBuffer();
 }
 /**
  * @brief 处理云端下发的数据
@@ -743,22 +761,30 @@ void MQTT_REQ(void)
  */
 void YunDataHandle(void)
 {
-    // 检查是否收到完整的一帧数据
     if (esp.over == 1)
     {
-        // 在接收缓冲区中搜索"led"关键字（从第10字节开始跳过MQTT头部）
+        if (esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
+        {
+            ESP_ClearRxBuffer();
+            return;
+        }
+
+        if (esp.rxnum < 10)
+        {
+            ESP_ClearRxBuffer();
+            return;
+        }
+
+        printf("RX Buff: %s\r\n", esp.rxbuff);
         char *p = strstr((char *)&esp.rxbuff[10], "led");
         if (p != NULL)
         {
-            // 找到led字段，解析其值（第5个字符是值）
-            // JSON格式示例：{"led":1} 或 {"led":0}
             if (*(p + 5) == '1')
-                LED1_ON(); // 开灯
+                LED1_ON();
             else
-                LED1_OFF(); // 关灯
+                LED1_OFF();
         }
 
-        // 处理完成后清除缓冲区，准备接收下一条消息
         ESP_ClearRxBuffer();
     }
 }
@@ -774,7 +800,7 @@ uint8_t ESP_ParsePinduoduoData(void)
     if (esp.over == 1)
     {
         // 打印接收到的完整数据，用于调试
-        printf("RX Buff: %s\r\n", esp.rxbuff);
+        // printf("RX Buff: %s\r\n", esp.rxbuff);
 
         // 在HTTP响应中搜索"time"关键字（服务器返回的JSON中包含时间戳）
         // HTTP响应格式示例：{"server_time":1772528604311,...}

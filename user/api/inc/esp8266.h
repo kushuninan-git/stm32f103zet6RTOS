@@ -42,10 +42,11 @@ void Load_WifiInfo(void);
 
 typedef struct
 {
-    uint8_t rxbuff[512]; ///< 接收数据缓冲区，最大存储512字节
-    uint16_t rxnum;      ///< 当前已接收数据的字节数
-    uint8_t over;        ///< 接收完成标志：1表示一帧数据接收完成
-    uint8_t state;       ///< ESP8266当前工作状态（用于状态机）
+    uint8_t rxbuff[512];
+    uint16_t rxnum;
+    uint8_t over;
+    uint8_t state;
+    uint8_t heartbeat_req;
 } ESP;
 
 extern WIFI wifi;

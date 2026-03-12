@@ -6,6 +6,7 @@
 #include "jx_uart_send.h"
 #include "kqm.h"
 #include "dht11.h"
+#include "bh1750.h"
 
 SU03T su03t = {0};
 
@@ -221,6 +222,9 @@ void Su03t_Handle_Command(void)
     case 0x0A: // 语音模块返回0x0A时，开始传输温度
         _uart_tem_2(dht.tem);
         break;
+    case 0x0B: // 语音模块返回0x0B时，开始传输温度
+               //  _uart_bh_2();
+        break;
 
     default:
         break;
@@ -229,3 +233,4 @@ void Su03t_Handle_Command(void)
     // 处理完成后清除数据，防止重复执行
     su03t.data = 0;
 }
+// 播报

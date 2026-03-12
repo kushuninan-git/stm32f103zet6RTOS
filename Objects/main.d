@@ -64,7 +64,6 @@
 .\objects\main.o: .\user\api\inc\esp8266.h
 .\objects\main.o: .\user\api\inc\su_03t.h
 .\objects\main.o: .\user\api\inc\flash.h
-.\objects\main.o: .\user\api\inc\jx_uart_send.h
 .\objects\main.o: .\LVGL\lvgl.h
 .\objects\main.o: .\LVGL\src/lv_misc/lv_log.h
 .\objects\main.o: .\LVGL\src/lv_misc/../lv_conf_internal.h

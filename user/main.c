@@ -33,7 +33,7 @@
 #include "Myi2c_bh1750.h"
 #include "flash.h"
 #include "bsp_lcd.h"
-#include "jx_uart_send.h"
+
 #include "lvgl.h"
 #include "lv_port_disp.h"
 #include "tim.h"
@@ -62,6 +62,10 @@ TaskHandle_t Bh1750TaskHandle = NULL;
 TaskHandle_t LCDTaskHandle = NULL;
 TaskHandle_t WifiTaskHandle = NULL;
 TaskHandle_t LVGLTaskHandle = NULL;
+// 云数据解析任务
+TaskHandle_t YunDataHandleTaskHandle = NULL;
+// 语音任务
+TaskHandle_t Su03tTaskHandle = NULL;
 // 消息队列
 QueueHandle_t xQueue1 = NULL;
 // 信号量
@@ -100,19 +104,19 @@ void LED1Task(void *pvParameters)
             // 必须 BIT_4 和 BIT_6 同时满足才报警
             if ((uxBits & (BIT_4 | BIT_6)) == (BIT_4 | BIT_6))
             {
-                LED1_ON(); // 报警：环境恶劣且已布防
+                Bep(1); // 报警：环境恶劣且已布防
                 // printf("ALARM ON! Bits: %X\n", uxBits);
             }
             else
             {
-                LED1_OFF(); // 正常：环境良好
+                Bep(0); // 正常：环境良好
                 // printf("Normal. Bits: %X\n", uxBits);
             }
         }
         else
         {
             // 未布防 (BIT_0被KEY2清除)：强制灭灯
-            LED1_OFF();
+            // LED1_OFF();
             // printf("Disarmed. Bits: %X\n", uxBits);
         }
     }
@@ -337,7 +341,31 @@ void Bh1750Task(void *pvParameters)
         vTaskDelay(1000); // 1秒读取一次（更频繁）
     }
 }
-
+// 语音模块任务
+void Su03tTask(void *pvParameters)
+{
+    Su03t_Init(); // 初始化语音模块
+    for (;;)
+    {
+        // 1. 先尝试读取并解析数据
+        if (Su03t_ReadData() == SU03T_OK)
+        {
+            // 2. 只有解析成功（收到有效数据）时才打印和处理
+            Su03t_Debug();          // 打印有效数据（此时 data 不为 0）
+            Su03t_Handle_Command(); // 处理命令（处理完后会将 data 置 0）
+        }
+        vTaskDelay(100);
+    }
+}
+// 云数据解析任务
+void YunDataHandleTask(void *pvParameters)
+{
+    for (;;)
+    {
+        YunDataHandle();
+        vTaskDelay(100);
+    }
+}
 // LCD任务
 void LCDTask(void *pvParameters)
 {
@@ -431,19 +459,22 @@ void WifiTask(void *pvParameters)
     Uart3_Init();
     for (;;)
     {
-        vTaskDelay(100);
+
         if (esp.state == 1)
         {
             ESP_AP();
         }
-        else if (esp.state >= 2 && esp.state < 5)
+        else if (esp.state >= 2 && esp.state <= 5)
         {
             UpDataYun();
         }
-        else if (esp.state == 5)
+
+        if (esp.heartbeat_req == 1)
         {
-            YunDataHandle();
+            esp.heartbeat_req = 0;
+            MQTT_REQ();
         }
+        vTaskDelay(100);
     }
 }
 // lvgl任务
@@ -481,10 +512,11 @@ void wifibackFunction(TimerHandle_t xTimer)
     }
     if (esp.state == 5)
     {
-        MQTT_REQ();
+        esp.heartbeat_req = 1;
     }
     static uint32_t report_cnt = 0;
 }
+
 // 任务状态显示定时器回调函数
 uint8_t CPU_RunInfo[400] = {0};
 void vCallbackFunction(TimerHandle_t xTimer1)
@@ -498,6 +530,11 @@ void vCallbackFunction(TimerHandle_t xTimer1)
 }
 int main(void)
 {
+    // 为了烧录语音
+    //  while (1)
+    //  {
+    //  }
+
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); // 中断分组2（2位抢占+2位子优先级）
     USART1_Init();                                  // 初始化串口1
     TIM_Init();                                     // 初始化定时器
@@ -532,7 +569,7 @@ int main(void)
     // 4. 创建任务
     BaseType_t xReturned; // 任务创建返回值变量
 
-    // 创建LED1任务
+    // 创建LED1任务 - 低优先级后台任务
     xReturned = xTaskCreate(
         LED1Task,         // 任务主体函数名称
         "led1",           // 任务的别名
@@ -540,30 +577,34 @@ int main(void)
         NULL,             // 任务主体函数传参
         1,                // 任务优先级
         &Led1TaskHandle); // 任务句柄
-    // 创建LED2任务
+    // 创建LED2任务 - 低优先级后台任务
     xReturned = xTaskCreate(LED2Task, "led2", 64, NULL, 1, &Led2TaskHandle);
     // 创建LED3任务
     // xReturned = xTaskCreate(LED3Task, "led3", 64, NULL, 1, &Led3TaskHandle);
     // 创建LED4任务
     // xReturned = xTaskCreate(LED4Task, "led4", 64, NULL, 1, &Led4TaskHandle);
-    // 创建key任务
+    // 创建key任务 - 中高优先级用户交互
     xReturned = xTaskCreate(KeyTask, "key", 64, NULL, 3, &KeyTaskHandle);
-    // 创建DHT11任务
+    // 创建DHT11任务 - 中优先级传感器任务
     xReturned = xTaskCreate(Dht11Task, "dht11", 80, NULL, 2, &Dht11TaskHandle);
-    // 创建kqm任务
+    // 创建kqm任务 - 中优先级传感器任务
     xReturned = xTaskCreate(KqmTask, "kqm", 80, NULL, 2, &KqmTaskHandle);
-    // 创建光照任务
+    // 创建光照任务 - 中优先级传感器任务
     xReturned = xTaskCreate(LightTask, "light", 80, NULL, 2, &LightTaskHandle);
-    // 创建BH1750任务
+    // 创建BH1750任务 - 中优先级传感器任务
     xReturned = xTaskCreate(Bh1750Task, "bh1750", 80, NULL, 2, &Bh1750TaskHandle);
-    // 创建RTC时间更新任务
+    // 创建RTC时间更新任务 - 中优先级系统任务
     xReturned = xTaskCreate(RTC_Task, "rtc", 128, NULL, 2, &RTC_TaskHandle);
-    // 创建LCD任务
+    // 创建LCD任务 - 高优先级用户交互
     xReturned = xTaskCreate(LCDTask, "lcd", 256, NULL, 4, &LCDTaskHandle);
-    // 创建wifi任务
-    xReturned = xTaskCreate(WifiTask, "wifi", 320, NULL, 4, &WifiTaskHandle);
-    // 创建lvgl任务
+    // 创建wifi任务 - 中低优先级通信任务
+    xReturned = xTaskCreate(WifiTask, "wifi", 512, NULL, 5, &WifiTaskHandle);
+    // 创建lvgl任务 - 高优先级用户交互
     xReturned = xTaskCreate(LVGLTask, "lvgl", 512, NULL, 4, &LVGLTaskHandle);
+    // 语音任务 - 中高优先级用户交互
+    xReturned = xTaskCreate(Su03tTask, "su03t", 256, NULL, 3, &Su03tTaskHandle);
+    // 创建云数据解析任务 - 中低优先级通信任务
+    xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 256, NULL, 2, &YunDataHandleTaskHandle);
     // 启动rtos, 开始调度任务.
     vTaskStartScheduler();
 }

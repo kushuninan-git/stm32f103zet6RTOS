@@ -1,6 +1,5 @@
 .\objects\jx_uart_send.o: user\api\src\jx_uart_send.c
 .\objects\jx_uart_send.o: .\user\api\inc\jx_uart_send.h
-.\objects\jx_uart_send.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdio.h
 .\objects\jx_uart_send.o: .\user\api\inc\su_03t.h
 .\objects\jx_uart_send.o: .\user\stm32f10x.h
 .\objects\jx_uart_send.o: E:\keil-527\Packs\ARM\CMSIS\5.5.1\CMSIS\Core\Include\core_cm3.h
