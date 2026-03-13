@@ -604,7 +604,7 @@ int main(void)
     // 语音任务 - 中高优先级用户交互
     xReturned = xTaskCreate(Su03tTask, "su03t", 64, NULL, 3, &Su03tTaskHandle);
     // 创建云数据解析任务 - 中低优先级通信任务
-    xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 64, NULL, 2, &YunDataHandleTaskHandle);
+    xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 128, NULL, 2, &YunDataHandleTaskHandle);
     // 启动rtos, 开始调度任务.
     vTaskStartScheduler();
 }

@@ -4,9 +4,9 @@
 .\objects\lv_imgbtn.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\lv_imgbtn.o: LVGL\src\lv_widgets\../lv_misc/../lv_conf_kconfig.h
 .\objects\lv_imgbtn.o: .\LVGL\src\lv_core\../../lv_conf.h
-.\objects\lv_imgbtn.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_imgbtn.o: LVGL\src\lv_widgets\../lv_themes/lv_theme.h
 .\objects\lv_imgbtn.o: LVGL\src\lv_widgets\../lv_themes/../lv_core/lv_style.h
+.\objects\lv_imgbtn.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_imgbtn.o: LVGL\src\lv_widgets\../lv_themes/../lv_core/../lv_font/lv_font.h
 .\objects\lv_imgbtn.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stddef.h
 .\objects\lv_imgbtn.o: LVGL\src\lv_widgets\../lv_themes/../lv_core/../lv_font/lv_symbol_def.h

@@ -4,8 +4,8 @@
 .\objects\lv_hal_indev.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\lv_hal_indev.o: LVGL\src\lv_hal\../lv_misc/../lv_conf_kconfig.h
 .\objects\lv_hal_indev.o: .\LVGL\src\lv_core\../../lv_conf.h
-.\objects\lv_hal_indev.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_hal_indev.o: LVGL\src\lv_hal\../lv_hal/lv_hal_indev.h
+.\objects\lv_hal_indev.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_hal_indev.o: LVGL\src\lv_hal\../lv_hal/../lv_misc/lv_area.h
 .\objects\lv_hal_indev.o: E:\keil-527\ARM\ARMCC\Bin\..\include\string.h
 .\objects\lv_hal_indev.o: LVGL\src\lv_hal\../lv_hal/../lv_misc/lv_mem.h

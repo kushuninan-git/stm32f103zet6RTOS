@@ -184,6 +184,13 @@ void MQTT_PublishText(void);
 uint8_t MQTT_Publish(void);
 
 /**
+ * @brief 订阅MQTT主题（SUBSCRIBE报文）
+ * @details 订阅平台下发命令的主题
+ * @return 1:订阅成功 0:订阅失败
+ */
+uint8_t MQTT_Subscribe(void);
+
+/**
  * @brief 发送MQTT心跳包
  * @details 保持与MQTT服务器的连接活跃
  */
@@ -200,12 +207,6 @@ void UpDataYun(void);
  * @brief 清除ESP8266接收缓冲区（重复声明）
  */
 void ESP_ClearRxBuffer(void);
-
-/**
- * @brief 订阅MQTT主题
- * @details 订阅平台下发命令的主题
- */
-void MQTT_Subscribe(void);
 
 /**
  * @brief 处理云端下发的数据

@@ -91,4 +91,3 @@
 .\objects\lv_theme_empty.o: LVGL\src\lv_themes\../../src/lv_draw/lv_img_cache.h
 .\objects\lv_theme_empty.o: LVGL\src\lv_themes\../../src/lv_api_map.h
 .\objects\lv_theme_empty.o: LVGL\src\lv_themes\../../src/../lvgl.h
-.\objects\lv_theme_empty.o: LVGL\src\lv_themes\../lv_misc/lv_gc.h

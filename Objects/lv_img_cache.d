@@ -4,10 +4,10 @@
 .\objects\lv_img_cache.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\../lv_misc/../lv_conf_kconfig.h
 .\objects\lv_img_cache.o: .\LVGL\src\lv_core\../../lv_conf.h
-.\objects\lv_img_cache.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\lv_img_cache.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\lv_img_decoder.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\lv_img_buf.h
+.\objects\lv_img_cache.o: E:\keil-527\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\../lv_misc/lv_color.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\../lv_misc/lv_math.h
 .\objects\lv_img_cache.o: LVGL\src\lv_draw\../lv_misc/lv_types.h

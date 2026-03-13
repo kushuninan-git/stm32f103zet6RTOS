@@ -568,54 +568,53 @@ void UpDataYun(void)
     break;
 
     case 9:
-        // 步骤9：发送具体业务数据
         if (esp.state == 3)
         {
-            // state=3：发送HTTP GET请求获取服务器时间
+            printf("发送HTTP请求获取时间...\r\n");
             ESP_ClearRxBuffer();
-            Uart3_TxStr(PIN_SERVER_GET);     // 发送HTTP请求
-            num++;                           // 进入下一步等待解析响应
-            last_active_time = current_time; // 更新活跃时间
+            Uart3_TxStr(PIN_SERVER_GET);
+
+            printf("等待服务器响应...\r\n");
+            vTaskDelay(pdMS_TO_TICKS(2000));
+
+            num++;
+            last_active_time = current_time;
         }
         else if (esp.state == 4)
         {
-            // state=4：发送MQTT CONNECT连接报文
             data = MQTT_Connect();
             if (data == 1)
             {
                 num++;
-                last_active_time = current_time; // 更新活跃时间
+                last_active_time = current_time;
             }
         }
         break;
 
     case 10:
-        // 步骤10：处理服务器响应数据
         if (esp.state == 3)
         {
-            // 解析时间服务器返回的HTTP响应
+            static uint8_t time_parse_retry = 0;
+
+            printf("解析时间服务器响应... (尝试 %d/10)\r\n", time_parse_retry + 1);
             data = ESP_ParsePinduoduoData();
 
             if (data == 1)
             {
+                printf("时间同步成功，准备连接MQTT服务器\r\n");
+                time_parse_retry = 0;
 
-                // 解析成功，现在需要关闭时间服务器连接，转而连接MQTT
-
-                // 发送"+++"退出透传模式（注意：发送后要延时1秒）
                 Uart3_TxStr("+++");
                 Delay_nms(1000);
                 Uart3_TxStr("AT+CIPSTATUS\r\n");
                 data = ESP_SendCmdAndAck("AT+CIPSTATUS\r\n", "STATUS:4", 1000);
 
-                // 关闭TCP连接
-                // data = ESP_SendCmdAndAck(CMD_CIPCLOSE_RST, "OK", 10000);
-
                 if (data == 1)
                 {
-                    esp.state = 4; // 切换到MQTT连接状态
-                    num = 6;       // 跳回步骤6，重新建立TCP连接（这次连接MQTT）
+                    esp.state = 4;
+                    num = 6;
                     Delay_nms(500);
-                    last_active_time = current_time; // 更新活跃时间
+                    last_active_time = current_time;
                 }
                 else
                 {
@@ -625,48 +624,144 @@ void UpDataYun(void)
                         esp.state = 4;
                         num = 6;
                         Delay_nms(500);
-                        last_active_time = current_time; // 更新活跃时间
+                        last_active_time = current_time;
+                    }
+                }
+            }
+            else
+            {
+                time_parse_retry++;
+
+                if (time_parse_retry >= 10)
+                {
+                    printf("连续10次时间解析失败，跳过时间同步，直接连接MQTT\r\n");
+                    time_parse_retry = 0;
+
+                    Uart3_TxStr("+++");
+                    Delay_nms(1000);
+
+                    data = ESP_SendCmdAndAck(CMD_CIPCLOSE_RST, "OK", 5000);
+                    if (data != 1)
+                    {
+                        ESP_SendCmdAndAck((uint8_t *)"AT+CIPCLOSE\r\n", (uint8_t *)"OK", 2000);
+                    }
+
+                    Delay_nms(500);
+                    esp.state = 4;
+                    num = 6;
+                    last_active_time = current_time;
+                }
+                else
+                {
+                    if (esp.rxnum == 0)
+                    {
+                        printf("未收到数据，等待2秒后重试...\r\n");
+                        vTaskDelay(pdMS_TO_TICKS(2000));
+                    }
+                    else
+                    {
+                        printf("数据格式错误，等待1秒后重试...\r\n");
+                        vTaskDelay(pdMS_TO_TICKS(1000));
                     }
                 }
             }
         }
         else if (esp.state == 4)
         {
-            // state=4：订阅MQTT主题，接收平台下发的命令
-            for (u8 i = 0; i < 3; i++)
+            printf("订阅MQTT主题...\r\n");
+
+            uint8_t subscribe_retry = 0;
+            uint8_t subscribe_success = 0;
+
+            for (subscribe_retry = 0; subscribe_retry < 5; subscribe_retry++)
             {
-                /* code */
-                MQTT_Subscribe();
+                printf("第%d次尝试订阅...\r\n", subscribe_retry + 1);
+
+                if (MQTT_Subscribe() == 1)
+                {
+                    subscribe_success = 1;
+                    printf("订阅成功，退出重试循环\r\n");
+                    break;
+                }
+                else
+                {
+                    printf("订阅失败，等待1秒后重试...\r\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
             }
 
-            MQTT_Subscribe();
-            num++;
-            last_active_time = current_time;
+            if (subscribe_success)
+            {
+                printf("MQTT订阅完成，进入数据上报阶段\r\n");
+                esp.state = 5;
+                num++;
+                last_active_time = current_time;
+            }
+            else
+            {
+                printf("连续5次订阅失败，重置状态机\r\n");
+                num = 1;
+                esp.state = 0;
+                last_active_time = 0;
+            }
         }
         break;
 
     case 11:
     {
+        static uint32_t last_publish_time = 0;
+        static uint8_t publish_fail_count = 0;
+        static uint32_t last_heartbeat_time = 0;
+
+        uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
         lv_scr_load(guider_ui.screen_data);
-        last_active_time = current_time;
 
-        static int data1 = 0;
-        data1++;
-
-        if (data1 >= 100 || esp.state == 0)
+        if (esp.state == 0)
         {
-            data1 = 0;
+            printf("检测到状态机重置，退出数据上报\r\n");
+            num = 1;
+            publish_fail_count = 0;
+            break;
+        }
+
+        if ((current_time - last_publish_time) >= 30000 || last_publish_time == 0)
+        {
+            last_publish_time = current_time;
+
+            printf("定时上报传感器数据...\r\n");
             uint8_t result = MQTT_Publish();
+
             if (result == 1)
             {
                 printf("成功发布传感器数据到MQTT服务器\r\n");
+                publish_fail_count = 0;
             }
             else
             {
-                printf("发布传感器数据失败\r\n");
+                publish_fail_count++;
+                printf("发布传感器数据失败 (第%d次)\r\n", publish_fail_count);
+
+                if (publish_fail_count >= 3)
+                {
+                    printf("连续3次发布失败，重置状态机\r\n");
+                    publish_fail_count = 0;
+                    num = 1;
+                    esp.state = 0;
+                    last_active_time = 0;
+                    break;
+                }
             }
-            esp.state = 5;
         }
+
+        if ((current_time - last_heartbeat_time) >= 50000 || last_heartbeat_time == 0)
+        {
+            last_heartbeat_time = current_time;
+            printf("执行MQTT心跳...\r\n");
+            MQTT_REQ();
+        }
+
+        last_active_time = current_time;
     }
     break;
     }
@@ -919,61 +1014,71 @@ uint8_t MQTT_Publish(void)
  * @brief 订阅MQTT主题（SUBSCRIBE报文）
  * @details 订阅平台下发命令的主题，这样云端可以向设备发送控制指令
  *          例如：控制LED开关、设置参数等
+ * @return 1:订阅成功 0:订阅失败
  */
-void MQTT_Subscribe(void)
+uint8_t MQTT_Subscribe(void)
 {
-    ESP_ClearRxBuffer(); // 清除接收缓冲区
+    ESP_ClearRxBuffer();
 
-    static uint8_t txbuff[512] = {0};                // 发送缓冲区（static避免栈溢出）
-    MQTTString topicString = MQTTString_initializer; // 主题字符串
-    int qos = 1;                                     // QoS等级：至少一次投递
+    static uint8_t txbuff[512] = {0};
+    MQTTString topicString = MQTTString_initializer;
+    int qos = 1;
 
-    // 设置要订阅的主题（接收云端下发命令）
     topicString.cstring = MQTT_TOPIC_SET;
 
-    // 序列化SUBSCRIBE报文
-    // 参数：缓冲区、packetid=0x2222、主题数=1
     int len = MQTTSerialize_subscribe(txbuff, 512, 0, 0x2222, 1,
                                       &topicString, &qos);
     if (len <= 0)
-        printf("subscribe包序列化失败\r\n");
-
-    // 发送SUBSCRIBE报文
-    Uart3_TxBuff(txbuff, len);
-
-    // 等待ESP8266将数据通过TCP发送出去（重要！）
-    vTaskDelay(pdMS_TO_TICKS(100)); // 等待100ms
-
-    // 等待服务器响应（透传模式下需要等待数据接收）
-    uint16_t timeout = 200; // 2秒超时（10ms × 200）
-    while (timeout-- && esp.rxnum == 0)
     {
-        vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
+        printf("subscribe包序列化失败\r\n");
+        return 0;
     }
 
-    // 打印响应（用于调试）
+    Uart3_TxBuff(txbuff, len);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    uint16_t timeout = 200;
+    while (timeout-- && esp.rxnum == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
     printf("MQTT Subscribe Resp: %02X %02X %02X %02X, rxnum=%d\r\n",
            esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3], esp.rxnum);
 
-    // 解析SUBACK响应
-    // 格式：0x90 0x03 0x00(packet_id低字节) 0x00(packet_id高字节) 0x??(返回码)
-    if (esp.rxnum > 0 && esp.rxbuff[0] == 0x90 && esp.rxbuff[1] == 0x03)
+    if (esp.rxnum == 0)
     {
-        if (esp.rxbuff[2] == 0x22 && esp.rxbuff[3] == 0x22) // packet_id = 0x2222
+        printf("MQTT订阅超时，未收到响应\r\n");
+        return 0;
+    }
+
+    if (esp.rxbuff[0] == 0x90 && esp.rxbuff[1] == 0x03)
+    {
+        if (esp.rxbuff[2] == 0x22 && esp.rxbuff[3] == 0x22)
         {
-            if (esp.rxbuff[4] != 0x80) // 0x80表示订阅失败
+            if (esp.rxbuff[4] != 0x80)
+            {
                 printf("subscribe成功\r\n");
+                return 1;
+            }
             else
+            {
                 printf("subscribe失败, 返回码: %02X\r\n", esp.rxbuff[4]);
+                return 0;
+            }
         }
         else
         {
-            printf("subscribe响应packet_id错误: %02X %02X\r\n", esp.rxbuff[2], esp.rxbuff[3]);
+            printf("packet_id不匹配: %02X %02X\r\n", esp.rxbuff[2], esp.rxbuff[3]);
+            return 0;
         }
     }
     else
     {
-        printf("subscribe未收到SUBACK响应\r\n");
+        printf("MQTT响应格式错误: %02X %02X %02X %02X\r\n",
+               esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+        return 0;
     }
 }
 /**
@@ -1008,6 +1113,11 @@ void MQTT_REQ(void)
  */
 void YunDataHandle(void)
 {
+    if (esp.state != 5)
+    {
+        return;
+    }
+
     if (esp.over == 1)
     {
         if (esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
@@ -1043,44 +1153,32 @@ void YunDataHandle(void)
  */
 uint8_t ESP_ParsePinduoduoData(void)
 {
-    // 检查是否收到完整的一帧数据
     if (esp.over == 1)
     {
-        // 打印接收到的完整数据，用于调试
-        // printf("RX Buff: %s\r\n", esp.rxbuff);
+        printf("收到完整数据帧，开始解析...\r\n");
 
-        // 在HTTP响应中搜索"time"关键字（服务器返回的JSON中包含时间戳）
-        // HTTP响应格式示例：{"server_time":1772528604311,...}
         char *p = strstr((char *)&esp.rxbuff[0], "time");
         if (p != NULL)
         {
             uint8_t buff[11] = {0};
 
-            // 解析时间戳字符串
-            // JSON格式："server_time":1772528604311
-            //          p指向 "time" 的 't'
-            // 字符位置：t(0) i(1) m(2) e(3) "(4) :(5) 1(6)
-            // 所以数字起始位置是 p + 6
             char *num_start = p + 6;
 
-            // 提取前10位（秒级时间戳，忽略毫秒）
             for (uint8_t i = 0; i < 10; i++)
                 buff[i] = *(num_start + i);
-            buff[10] = '\0'; // 确保字符串正确结束
+            buff[10] = '\0';
 
             printf("Parsed time str: %s\r\n", buff);
 
-            // 将字符串转换为整数（Unix时间戳）
             unsigned int sec = (unsigned int)atoi((char *)buff);
 
-            // 判断时间戳是否有效（大于1600000000，即2020年）
             if (sec > 1600000000)
             {
                 printf("Valid Time! Updating RTC to: %d\r\n", sec);
-                // 转换为北京时间（UTC+8）：加上8小时的秒数
                 RTC_UpData_Time(sec + 8 * 3600);
 
-                return 1; // 解析成功
+                ESP_ClearRxBuffer();
+                return 1;
             }
             else
             {
@@ -1089,15 +1187,18 @@ uint8_t ESP_ParsePinduoduoData(void)
         }
         else
         {
-            printf("Keyword 'time' not found in response\r\n");
+            printf("未找到'time'关键字\r\n");
+            printf("RX Data (前100字节): %.100s\r\n", esp.rxbuff);
         }
 
-        // 解析失败或完成，清除缓冲区
-        memset(esp.rxbuff, 0, 512);
-        esp.rxnum = 0;
-        esp.over = 0;
+        ESP_ClearRxBuffer();
     }
-    return 0; // 解析失败
+    else
+    {
+        printf("数据帧未完成，等待中... (over=%d, rxnum=%d)\r\n", esp.over, esp.rxnum);
+    }
+
+    return 0;
 }
 void ESP_AP(void)
 {
