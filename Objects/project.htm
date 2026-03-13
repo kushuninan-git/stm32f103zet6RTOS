@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\project.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\project.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Fri Mar 13 16:30:12 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Fri Mar 13 17:37:50 2026
 <BR><P>
 <H3>Maximum Stack Usage =       1552 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -1071,9 +1071,9 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[15f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;YunDataHandle
 <LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
-<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[c7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_AP
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[11f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Connect
 <LI><a href="#[d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_SendCmdAndAck
@@ -1611,12 +1611,14 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
 </UL>
 
-<P><STRONG><a name="[121]"></a>MQTT_Publish</STRONG> (Thumb, 416 bytes, Stack size 136 bytes, esp8266.o(i.MQTT_Publish))
-<BR><BR>[Stack]<UL><LI>Max Depth = 256<LI>Call Chain = MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
+<P><STRONG><a name="[121]"></a>MQTT_Publish</STRONG> (Thumb, 538 bytes, Stack size 144 bytes, esp8266.o(i.MQTT_Publish))
+<BR><BR>[Stack]<UL><LI>Max Depth = 264<LI>Call Chain = MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
 </UL>
 <BR>[Calls]<UL><LI><a href="#[af]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_ReadInputDataBit
 <LI><a href="#[11b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTTSerialize_publish
 <LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vTaskDelay
+<LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortExitCritical
+<LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortEnterCritical
 <LI><a href="#[dc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_f2d
 <LI><a href="#[dd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_cdrcmple
 <LI><a href="#[122]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_f2iz
@@ -1630,16 +1632,17 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
 </UL>
 
-<P><STRONG><a name="[125]"></a>MQTT_REQ</STRONG> (Thumb, 78 bytes, Stack size 8 bytes, esp8266.o(i.MQTT_REQ))
-<BR><BR>[Stack]<UL><LI>Max Depth = 64<LI>Call Chain = MQTT_REQ &rArr; vTaskDelay &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
+<P><STRONG><a name="[125]"></a>MQTT_REQ</STRONG> (Thumb, 154 bytes, Stack size 16 bytes, esp8266.o(i.MQTT_REQ))
+<BR><BR>[Stack]<UL><LI>Max Depth = 72<LI>Call Chain = MQTT_REQ &rArr; vTaskDelay &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vTaskDelay
+<LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortExitCritical
+<LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortEnterCritical
 <LI><a href="#[120]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Uart3_TxBuff
 <LI><a href="#[c9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_ClearRxBuffer
 <LI><a href="#[cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2printf
 </UL>
 <BR>[Called By]<UL><LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
-<LI><a href="#[82]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;WifiTask
 </UL>
 
 <P><STRONG><a name="[126]"></a>MQTT_Subscribe</STRONG> (Thumb, 264 bytes, Stack size 40 bytes, esp8266.o(i.MQTT_Subscribe))
@@ -2162,8 +2165,8 @@ Global Symbols
 <BR>[Calls]<UL><LI><a href="#[14a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART_GetFlagStatus
 <LI><a href="#[15c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Uart3_Tx
 </UL>
-<BR>[Called By]<UL><LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
-<LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<BR>[Called By]<UL><LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[11f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Connect
 </UL>
@@ -2179,16 +2182,16 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[15d]"></a>UpDataYun</STRONG> (Thumb, 3668 bytes, Stack size 152 bytes, esp8266.o(i.UpDataYun))
-<BR><BR>[Stack]<UL><LI>Max Depth = 408<LI>Call Chain = UpDataYun &rArr; MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
+<BR><BR>[Stack]<UL><LI>Max Depth = 416<LI>Call Chain = UpDataYun &rArr; MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
 </UL>
 <BR>[Calls]<UL><LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 <LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;lv_scr_load
 <LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Delay_nms
 <LI><a href="#[15e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xTaskGetTickCount
 <LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vTaskDelay
-<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[c8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Uart3_TxStr
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[11f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Connect
 <LI><a href="#[10f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Load_WifiInfo
@@ -2206,22 +2209,23 @@ Global Symbols
 <P><STRONG><a name="[11]"></a>UsageFault_Handler</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_it.o(i.UsageFault_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_hd.o(RESET)
 </UL>
-<P><STRONG><a name="[82]"></a>WifiTask</STRONG> (Thumb, 76 bytes, Stack size 0 bytes, main.o(i.WifiTask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 408<LI>Call Chain = WifiTask &rArr; UpDataYun &rArr; MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
+<P><STRONG><a name="[82]"></a>WifiTask</STRONG> (Thumb, 54 bytes, Stack size 0 bytes, main.o(i.WifiTask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 416<LI>Call Chain = WifiTask &rArr; UpDataYun &rArr; MQTT_Publish &rArr; MQTTSerialize_publish &rArr; MQTTSerialize_publishLength &rArr; MQTTstrlen
 </UL>
 <BR>[Calls]<UL><LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vTaskDelay
 <LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
 <LI><a href="#[15b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Uart3_Init
-<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[c7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_AP
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[15f]"></a>YunDataHandle</STRONG> (Thumb, 116 bytes, Stack size 8 bytes, esp8266.o(i.YunDataHandle))
-<BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = YunDataHandle &rArr; __2printf
+<P><STRONG><a name="[15f]"></a>YunDataHandle</STRONG> (Thumb, 204 bytes, Stack size 24 bytes, esp8266.o(i.YunDataHandle))
+<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = YunDataHandle &rArr; __2printf
 </UL>
 <BR>[Calls]<UL><LI><a href="#[ac]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_SetBits
 <LI><a href="#[ad]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_ResetBits
+<LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortExitCritical
+<LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vPortEnterCritical
 <LI><a href="#[c9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_ClearRxBuffer
 <LI><a href="#[ca]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;strstr
 <LI><a href="#[cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2printf
@@ -2253,13 +2257,13 @@ Global Symbols
 <LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
 <LI><a href="#[140]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Su03t_Debug
 <LI><a href="#[12a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
-<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[c7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_AP
 <LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;wifibackFunction
 <LI><a href="#[405]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;vApplicationStackOverflowHook
 <LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;KeyTask
 <LI><a href="#[cd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Save_WifiInfo
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[11f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Connect
 <LI><a href="#[10f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Load_WifiInfo
@@ -6109,6 +6113,7 @@ Global Symbols
 <LI><a href="#[fc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xEventGroupWaitBits
 <LI><a href="#[d6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xEventGroupClearBits
 <LI><a href="#[3f5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;pvTimerGetTimerID
+<LI><a href="#[15f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;YunDataHandle
 <LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Bh1750Task
 <LI><a href="#[412]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xTaskCheckForTimeOut
 <LI><a href="#[3dd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueGenericReset
@@ -6117,6 +6122,8 @@ Global Symbols
 <LI><a href="#[3e4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvIsQueueFull
 <LI><a href="#[3e3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvIsQueueEmpty
 <LI><a href="#[3ec]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xTaskResumeAll
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
+<LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[3d3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvCheckForValidListAndQueue
 <LI><a href="#[3d6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvCheckTasksWaitingTermination
 <LI><a href="#[3d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvAddNewTaskToReadyList
@@ -6129,6 +6136,7 @@ Global Symbols
 <LI><a href="#[fc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xEventGroupWaitBits
 <LI><a href="#[d6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xEventGroupClearBits
 <LI><a href="#[3f5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;pvTimerGetTimerID
+<LI><a href="#[15f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;YunDataHandle
 <LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Bh1750Task
 <LI><a href="#[412]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xTaskCheckForTimeOut
 <LI><a href="#[3dd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueGenericReset
@@ -6137,6 +6145,8 @@ Global Symbols
 <LI><a href="#[3e4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvIsQueueFull
 <LI><a href="#[3e3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvIsQueueEmpty
 <LI><a href="#[3ec]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xTaskResumeAll
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
+<LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[3d3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvCheckForValidListAndQueue
 <LI><a href="#[3d6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvCheckTasksWaitingTermination
 <LI><a href="#[3d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvAddNewTaskToReadyList
@@ -6181,7 +6191,6 @@ Global Symbols
 <LI><a href="#[3cd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvAddCurrentTaskToDelayedList
 </UL>
 <BR>[Called By]<UL><LI><a href="#[15d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UpDataYun
-<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;YunDataHandleTask
 <LI><a href="#[82]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;WifiTask
 <LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Su03tTask
@@ -6193,6 +6202,7 @@ Global Symbols
 <LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Dht11Task
 <LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Bh1750Task
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Subscribe
+<LI><a href="#[125]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_REQ
 <LI><a href="#[121]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Publish
 <LI><a href="#[11f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MQTT_Connect
 <LI><a href="#[d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ESP_SendCmdAndAck
@@ -6295,7 +6305,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[14]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;PendSV_Handler
 </UL>
 
-<P><STRONG><a name="[78]"></a>wifibackFunction</STRONG> (Thumb, 76 bytes, Stack size 16 bytes, main.o(i.wifibackFunction))
+<P><STRONG><a name="[78]"></a>wifibackFunction</STRONG> (Thumb, 58 bytes, Stack size 16 bytes, main.o(i.wifibackFunction))
 <BR><BR>[Stack]<UL><LI>Max Depth = 40<LI>Call Chain = wifibackFunction &rArr; __2printf
 </UL>
 <BR>[Calls]<UL><LI><a href="#[3f5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;pvTimerGetTimerID

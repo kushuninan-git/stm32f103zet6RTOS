@@ -47,6 +47,7 @@ typedef struct
     uint8_t over;
     uint8_t state;
     uint8_t heartbeat_req;
+    uint8_t mqtt_busy;
 } ESP;
 
 extern WIFI wifi;

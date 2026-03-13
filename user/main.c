@@ -469,11 +469,6 @@ void WifiTask(void *pvParameters)
             UpDataYun();
         }
 
-        if (esp.heartbeat_req == 1)
-        {
-            esp.heartbeat_req = 0;
-            MQTT_REQ();
-        }
         vTaskDelay(100);
     }
 }
@@ -510,11 +505,6 @@ void wifibackFunction(TimerHandle_t xTimer)
             }
         }
     }
-    if (esp.state == 5)
-    {
-        esp.heartbeat_req = 1;
-    }
-    static uint32_t report_cnt = 0;
 }
 
 // 任务状态显示定时器回调函数

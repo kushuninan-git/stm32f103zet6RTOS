@@ -848,7 +848,12 @@ uint8_t MQTT_Connect(void)
 
 uint8_t MQTT_Publish(void)
 {
+    esp.mqtt_busy = 1;
+
+    taskENTER_CRITICAL();
     ESP_ClearRxBuffer();
+    taskEXIT_CRITICAL();
+
     static uint8_t txbuff[512] = {0};
     MQTTString topicString = MQTTString_initializer;
     static char payload[512];
@@ -923,39 +928,55 @@ uint8_t MQTT_Publish(void)
     // 发送PUBLISH报文
     Uart3_TxBuff(txbuff, len);
 
-    // 等待ESP8266将数据通过TCP发送出去（重要！）
-    vTaskDelay(pdMS_TO_TICKS(100)); // 等待100ms
-
-    // 等待服务器响应（透传模式下需要等待数据接收）
-    uint16_t timeout = 200; // 2秒超时（10ms × 200）
-    while (timeout-- && esp.rxnum == 0)
+    // 等待服务器响应（透传模式下需要等待数据接收完成）
+    // 必须等待 esp.over == 1，表示一帧数据接收完成
+    uint16_t timeout = 300; // 3秒超时（10ms × 300）
+    while (timeout-- && esp.over == 0)
     {
         vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
     }
 
     // 打印响应（用于调试）
+    taskENTER_CRITICAL();
+    uint8_t rxnum = esp.rxnum;
+    uint8_t rxbuff[4] = {esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]};
+    taskEXIT_CRITICAL();
+
     printf("MQTT Publish Resp: %02X %02X %02X %02X, rxnum=%d\r\n",
-           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3], esp.rxnum);
+           rxbuff[0], rxbuff[1], rxbuff[2], rxbuff[3], rxnum);
 
     // 解析PUBACK响应（QoS=1时服务器会返回PUBACK）
-    // 格式：0x40 0x02 0x00(packet_id)
-    if (esp.rxnum > 0 && esp.rxbuff[0] == 0x40 && esp.rxbuff[1] == 0x02)
+    // 格式：0x40 0x02 packet_id_high packet_id_low
+    if (rxnum > 0 && rxbuff[0] == 0x40 && rxbuff[1] == 0x02)
     {
-        if (esp.rxbuff[3] == 0x11) // packet_id = 0x1111 的低字节
+        uint16_t recv_packet_id = (rxbuff[2] << 8) | rxbuff[3];
+        if (recv_packet_id == 0x1111)
         {
-            printf("publish成功\r\n");
-            return 1; // 返回成功
+            printf("publish成功 (Packet ID: 0x%04X)\r\n", recv_packet_id);
+            taskENTER_CRITICAL();
+            ESP_ClearRxBuffer();
+            taskEXIT_CRITICAL();
+            esp.mqtt_busy = 0;
+            return 1;
         }
         else
         {
-            printf("publish响应packet_id错误: %02X\r\n", esp.rxbuff[3]);
-            return 0; // 返回失败
+            printf("publish响应packet_id错误: 期望0x1111, 收到0x%04X\r\n", recv_packet_id);
+            taskENTER_CRITICAL();
+            ESP_ClearRxBuffer();
+            taskEXIT_CRITICAL();
+            esp.mqtt_busy = 0;
+            return 0;
         }
     }
     else
     {
         printf("publish未收到PUBACK响应\r\n");
-        return 0; // 返回失败
+        taskENTER_CRITICAL();
+        ESP_ClearRxBuffer();
+        taskEXIT_CRITICAL();
+        esp.mqtt_busy = 0;
+        return 0;
     }
 }
 ///**
@@ -1088,23 +1109,39 @@ uint8_t MQTT_Subscribe(void)
  */
 void MQTT_REQ(void)
 {
+    esp.mqtt_busy = 1;
+
+    taskENTER_CRITICAL();
     ESP_ClearRxBuffer();
+    taskEXIT_CRITICAL();
 
     uint8_t buff[2] = {0xC0, 0x00};
     Uart3_TxBuff(buff, 2);
 
-    vTaskDelay(pdMS_TO_TICKS(500));
+    // 等待服务器响应（必须等待 esp.over == 1，表示一帧数据接收完成）
+    uint16_t timeout = 200; // 2秒超时（10ms × 200）
+    while (timeout-- && esp.over == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 
-    if (esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
+    taskENTER_CRITICAL();
+    if (esp.over == 1 && esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
     {
         printf("mqtt 心跳成功\r\n");
+        ESP_ClearRxBuffer();
     }
     else if (esp.over == 1)
     {
         printf("mqtt 心跳响应异常: %02X %02X\r\n", esp.rxbuff[0], esp.rxbuff[1]);
+        ESP_ClearRxBuffer();
     }
-
-    ESP_ClearRxBuffer();
+    else
+    {
+        printf("mqtt 心跳超时，未收到响应\r\n");
+    }
+    esp.mqtt_busy = 0;
+    taskEXIT_CRITICAL();
 }
 /**
  * @brief 处理云端下发的数据
@@ -1118,17 +1155,37 @@ void YunDataHandle(void)
         return;
     }
 
-    if (esp.over == 1)
+    if (esp.mqtt_busy)
     {
-        if (esp.rxbuff[0] == 0xD0 && esp.rxbuff[1] == 0x00)
+        return;
+    }
+
+    taskENTER_CRITICAL();
+    uint8_t is_over = esp.over;
+    uint8_t rxnum = esp.rxnum;
+    uint8_t rxbuff[4] = {esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]};
+    taskEXIT_CRITICAL();
+
+    if (is_over == 1)
+    {
+        if (rxbuff[0] == 0xD0 && rxbuff[1] == 0x00)
         {
+            taskENTER_CRITICAL();
             ESP_ClearRxBuffer();
+            taskEXIT_CRITICAL();
             return;
         }
 
-        if (esp.rxnum < 10)
+        if (rxbuff[0] == 0x40 && rxbuff[1] == 0x02)
         {
+            taskENTER_CRITICAL();
             ESP_ClearRxBuffer();
+            taskEXIT_CRITICAL();
+            return;
+        }
+
+        if (rxnum < 10)
+        {
             return;
         }
 
@@ -1142,7 +1199,9 @@ void YunDataHandle(void)
                 LED1_OFF();
         }
 
+        taskENTER_CRITICAL();
         ESP_ClearRxBuffer();
+        taskEXIT_CRITICAL();
     }
 }
 /**
