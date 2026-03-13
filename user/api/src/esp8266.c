@@ -163,6 +163,11 @@ void Uart3_TxBuff(uint8_t buff[], uint16_t len)
 {
     for (uint16_t i = 0; i < len; i++)
         Uart3_Tx(buff[i]);
+
+    // 等待发送完成（重要！）
+    // 确保所有数据都从发送缓冲区发送出去
+    while (USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET)
+        ;
 }
 /**
  * @brief 发送一个字符串到UART3串口
@@ -206,7 +211,6 @@ void USART3_IRQHandler(void)
     if (USART_GetITStatus(USART3, USART_IT_RXNE) == SET)
     {
         data = USART3->DR;
-        USART1->DR = data;
 
         esp.rxbuff[esp.rxnum++] = data;
         esp.rxnum %= 512;
@@ -271,8 +275,7 @@ uint8_t ESP_SendCmdAndAck(uint8_t *cmd, uint8_t *ack, uint16_t outtime)
     while (outtime--)
     {
 
-        vTaskDelay(1); // 延时1毫秒，释放CPU
-        Delay_nms(1);  // 延时1毫秒
+        vTaskDelay(pdMS_TO_TICKS(10)); // 统一使用FreeRTOS延时，10ms/次
         if (esp.over == 1)
         {
             // 在接收缓冲区中查找期望的关键词
@@ -311,27 +314,97 @@ uint8_t num = 1;
  */
 void UpDataYun(void)
 {
+    static uint32_t last_active_time = 0;
+    static uint8_t reset_count = 0; // 记录重置次数
+    uint32_t current_time = xTaskGetTickCount();
+
+    // 超时保护：如果某个步骤卡住超过100秒，重置状态机
+    if (last_active_time != 0 &&
+        (current_time - last_active_time) > pdMS_TO_TICKS(100000))
+    {
+        printf("WiFi状态机超时，重置...\r\n");
+        reset_count++;
+
+        // 如果连续重置超过3次，触发硬件复位
+        if (reset_count >= 3)
+        {
+            printf("连续重置失败，触发ESP8266硬件复位\r\n");
+            GPIO_WriteBit(GPIOE, GPIO_Pin_6, Bit_RESET); // 拉低RST引脚
+            Delay_nms(100);
+            GPIO_WriteBit(GPIOE, GPIO_Pin_6, Bit_SET); // 拉高RST引脚
+            Delay_nms(2000);                           // 等待ESP8266重启
+            reset_count = 0;
+        }
+
+        num = 1;
+        esp.state = 0;
+        last_active_time = 0;
+        return;
+    }
+
+    // 如果成功进入case 11，清除重置计数
+    if (num == 11)
+    {
+        reset_count = 0;
+    }
+
     uint8_t data = 0;
 
     // 使用switch语句实现状态机，每次只执行一个步骤
     switch (num)
     {
     case 1:
-        // 步骤1：发送AT指令测试模块是否在线
-        // 发送"AT"命令，如果模块正常会返回"OK"
+    {
+        // 步骤1：清理ESP8266状态并测试模块是否在线
+        // 重要：先退出透传模式，否则后续AT命令可能无法识别
+        printf("清理ESP8266状态...\r\n");
+
+        // 1. 退出透传模式（发送+++，需要前后至少1秒无数据）
+        Uart3_TxStr("+++");
+        Delay_nms(1200); // 必须>1秒
+
+        // 2. 关闭所有TCP连接
+        ESP_SendCmdAndAck((uint8_t *)"AT+CIPCLOSE\r\n", (uint8_t *)"OK", 500);
+        Delay_nms(200);
+
+        // 3. 关闭透传模式
+        ESP_SendCmdAndAck((uint8_t *)"AT+CIPMODE=0\r\n", (uint8_t *)"OK", 500);
+        Delay_nms(200);
+
+        // 4. 测试AT指令
         data = ESP_SendCmdAndAck((uint8_t *)CMD_AT, (uint8_t *)"OK", 100);
         if (data == 1)
-            num++; // 成功后进入下一步
-        break;
+        {
+            printf("ESP8266状态清理完成，模块在线\r\n");
+            num++;
+            last_active_time = current_time;
+        }
+        else
+        {
+            printf("ESP8266无响应，请检查硬件连接\r\n");
+        }
+    }
+    break;
 
     case 2:
+    {
         // 步骤2：复位ESP8266模块
         // 发送"AT+RST"命令让模块软复位
+        printf("复位ESP8266模块...\r\n");
         data = ESP_SendCmdAndAck((uint8_t *)CMD_RST, (uint8_t *)"OK", 1000);
-        Delay_nms(1000); // 等待复位完成
         if (data == 1)
+        {
+            printf("等待ESP8266重启...\r\n");
+            Delay_nms(2000); // 增加到2秒，确保复位完成
             num++;
-        break;
+            last_active_time = current_time;
+        }
+        else
+        {
+            printf("ESP8266复位失败\r\n");
+        }
+    }
+    break;
 
     case 3:
         // 步骤3：设置WiFi模式为STA（Station）模式
@@ -341,6 +414,7 @@ void UpDataYun(void)
         {
             esp.state = 3; // 设置内部状态为3，表示下一步要连接时间服务器
             num++;
+            last_active_time = current_time; // 更新活跃时间
         }
         break;
 
@@ -357,62 +431,141 @@ void UpDataYun(void)
             printf("Connecting to WiFi: %s\r\n", wifi.name);
 
             data = ESP_SendCmdAndAck(buff, (uint8_t *)"OK", 10000);
+            // lv_scr_load(guider_ui.screen_data_img_wifi);
             if (data == 1)
+            {
                 num++;
+                last_active_time = current_time; // 更新活跃时间
+            }
         }
 
         break;
 
     case 5:
+    {
         // 步骤5：设置为单连接模式（CIPMUX=0）
+        printf("配置单连接模式...\r\n");
+
         // 如果当前有连接存在（link is builded），直接设置会报错
         // 所以先尝试关闭所有连接
-        ESP_SendCmdAndAck((uint8_t *)"AT+CIPCLOSE\r\n", (uint8_t *)"OK", 500);
-        Delay_nms(500);
+        uint8_t close_result = ESP_SendCmdAndAck((uint8_t *)"AT+CIPCLOSE\r\n", (uint8_t *)"OK", 500);
+        if (close_result == 1)
+        {
+            printf("已关闭现有TCP连接\r\n");
+        }
+        Delay_nms(300);
 
         // 单连接模式下一次只能建立一个TCP连接
         data = ESP_SendCmdAndAck((uint8_t *)CMD_CIPMUX_SINGLE, (uint8_t *)"OK", 1000);
         if (data == 1)
+        {
+            printf("单连接模式设置成功\r\n");
             num++;
-        break;
+            last_active_time = current_time;
+        }
+        else
+        {
+            printf("单连接模式设置失败\r\n");
+        }
+    }
+    break;
 
     case 6:
+    {
         // 步骤6：建立TCP连接到服务器
         uint8_t buff[128] = {0};
 
         if (esp.state == 3)
         {
-            // state=3：连接时间服务器（拼多多API）获取网络时间
-            // 拼接TCP连接命令：AT+CIPSTART="TCP","api.pinduoduo.com",80
+            printf("连接时间服务器...\r\n");
             sprintf((char *)buff, CMD_CIPSTART_PIN, PIN_SERVER_IP, PIN_SERVER_PORT);
         }
         else if (esp.state == 4)
         {
-            // state=4：连接MQTT服务器（OneNET）
-            // 拼接TCP连接命令：AT+CIPSTART="TCP","mqtts.heclouds.com",1883
+            printf("连接MQTT服务器...\r\n");
             sprintf((char *)buff, CMD_CIPSTART_MQTT, MQTT_SERVER_IP, MQTT_SERVER_PORT);
         }
 
         data = ESP_SendCmdAndAck(buff, (uint8_t *)"OK", 10000);
+
+        // 处理"ALREADY CONNECTED"的情况
+        if (data == 0 && strstr((char *)esp.rxbuff, "ALREADY CONNECTED") != NULL)
+        {
+            printf("TCP连接已存在，继续...\r\n");
+            data = 1; // 视为成功
+        }
+
         if (data == 1)
+        {
+            printf("TCP连接建立成功\r\n");
             num++;
-        break;
+            last_active_time = current_time;
+        }
+        else
+        {
+            printf("TCP连接建立失败\r\n");
+        }
+    }
+    break;
 
     case 7:
+    {
         // 步骤7：开启透传模式（CIPMODE=1）
+        printf("开启透传模式...\r\n");
+
         // 透传模式下，串口收到的数据会直接透传到TCP连接，反之亦然
         data = ESP_SendCmdAndAck((uint8_t *)CMD_CIPMODE, (uint8_t *)"OK", 10000);
         if (data == 1)
+        {
+            printf("透传模式已开启\r\n");
             num++;
-        break;
+            last_active_time = current_time;
+        }
+        else
+        {
+            printf("透传模式开启失败\r\n");
+        }
+    }
+    break;
 
     case 8:
+    {
         // 步骤8：准备发送数据（CIPSEND）
+        printf("准备发送数据...\r\n");
+
         // 在透传模式下使用此命令进入发送状态
-        data = ESP_SendCmdAndAck((uint8_t *)CMD_CIPSEND, (uint8_t *)">", 10000);
+        data = ESP_SendCmdAndAck((uint8_t *)CMD_CIPSEND, (uint8_t *)">", 5000);
+
         if (data == 1)
+        {
+            printf("进入透传发送状态成功\r\n");
             num++;
-        break;
+            last_active_time = current_time;
+        }
+        else if (data == 2) // 收到ERROR
+        {
+            printf("CIPSEND返回ERROR，可能原因：\r\n");
+            printf("  1. TCP连接未建立\r\n");
+            printf("  2. 已经在透传发送状态\r\n");
+            printf("  3. 透传模式未正确开启\r\n");
+            printf("重置状态机...\r\n");
+            num = 1;
+            esp.state = 0;
+            last_active_time = 0;
+        }
+        else // 超时
+        {
+            printf("CIPSEND超时，可能原因：\r\n");
+            printf("  1. ESP8266卡在透传模式\r\n");
+            printf("  2. TCP连接异常\r\n");
+            printf("  3. 串口通信故障\r\n");
+            printf("重置状态机...\r\n");
+            num = 1;
+            esp.state = 0;
+            last_active_time = 0;
+        }
+    }
+    break;
 
     case 9:
         // 步骤9：发送具体业务数据
@@ -420,15 +573,19 @@ void UpDataYun(void)
         {
             // state=3：发送HTTP GET请求获取服务器时间
             ESP_ClearRxBuffer();
-            Uart3_TxStr(PIN_SERVER_GET); // 发送HTTP请求
-            num++;                       // 进入下一步等待解析响应
+            Uart3_TxStr(PIN_SERVER_GET);     // 发送HTTP请求
+            num++;                           // 进入下一步等待解析响应
+            last_active_time = current_time; // 更新活跃时间
         }
         else if (esp.state == 4)
         {
             // state=4：发送MQTT CONNECT连接报文
             data = MQTT_Connect();
             if (data == 1)
+            {
                 num++;
+                last_active_time = current_time; // 更新活跃时间
+            }
         }
         break;
 
@@ -438,8 +595,10 @@ void UpDataYun(void)
         {
             // 解析时间服务器返回的HTTP响应
             data = ESP_ParsePinduoduoData();
+
             if (data == 1)
             {
+
                 // 解析成功，现在需要关闭时间服务器连接，转而连接MQTT
 
                 // 发送"+++"退出透传模式（注意：发送后要延时1秒）
@@ -456,6 +615,7 @@ void UpDataYun(void)
                     esp.state = 4; // 切换到MQTT连接状态
                     num = 6;       // 跳回步骤6，重新建立TCP连接（这次连接MQTT）
                     Delay_nms(500);
+                    last_active_time = current_time; // 更新活跃时间
                 }
                 else
                 {
@@ -465,6 +625,7 @@ void UpDataYun(void)
                         esp.state = 4;
                         num = 6;
                         Delay_nms(500);
+                        last_active_time = current_time; // 更新活跃时间
                     }
                 }
             }
@@ -472,28 +633,39 @@ void UpDataYun(void)
         else if (esp.state == 4)
         {
             // state=4：订阅MQTT主题，接收平台下发的命令
+            for (u8 i = 0; i < 3; i++)
+            {
+                /* code */
+                MQTT_Subscribe();
+            }
+
             MQTT_Subscribe();
             num++;
+            last_active_time = current_time;
         }
         break;
 
     case 11:
     {
-        // 步骤11：周期性任务循环
-        // 此步骤会反复执行，不断上报数据到云端
-        static int data1 = 0; // Modified: Start from 0
+        lv_scr_load(guider_ui.screen_data);
+        last_active_time = current_time;
+
+        static int data1 = 0;
         data1++;
 
-        // 每隔约100次循环（约10秒，假设主循环100ms一次）
-        // 或者当状态异常时，重新发布一次数据
         if (data1 >= 100 || esp.state == 0)
         {
-            data1 = 0; // Reset counter
-            // esp.state = 1; // FIX: Do NOT reset state to 1, stay connected!
-            MQTT_Publish(); // 发布传感器数据到MQTT服务器
-            printf("成功发布传感器数据到MQTT服务器\r\n");
+            data1 = 0;
+            uint8_t result = MQTT_Publish();
+            if (result == 1)
+            {
+                printf("成功发布传感器数据到MQTT服务器\r\n");
+            }
+            else
+            {
+                printf("发布传感器数据失败\r\n");
+            }
             esp.state = 5;
-            // MQTT_PublishText();
         }
     }
     break;
@@ -528,14 +700,29 @@ uint8_t MQTT_Connect(void)
     // 发送CONNECT报文到MQTT服务器
     Uart3_TxBuff(txbuff, len);
 
-    Delay_nms(1000); // 等待服务器响应
+    // 等待ESP8266将数据通过TCP发送出去（重要！）
+    vTaskDelay(pdMS_TO_TICKS(100)); // 等待100ms
+
+    // 等待服务器响应（透传模式下需要更长时间）
+    // 循环等待直到收到数据或超时
+    uint16_t timeout = 200; // 2秒超时（10ms × 200）
+    while (timeout-- && esp.rxnum == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
+    }
 
     // 打印收到的响应（前4个字节用于调试）
-    printf("MQTT Connect Resp: %02X %02X %02X %02X\r\n",
-           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+    printf("MQTT Connect Resp: %02X %02X %02X %02X, rxnum=%d\r\n",
+           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3], esp.rxnum);
 
     // 解析MQTT CONNACK响应
     // MQTT连接响应格式：0x20 0x02 0x00(return_code)
+    if (esp.rxnum == 0)
+    {
+        printf("MQTT连接超时，未收到响应\r\n");
+        return 0;
+    }
+
     if (esp.rxbuff[0] == 0x20 && esp.rxbuff[1] == 0x02)
     {
         if (esp.rxbuff[3] == 0x00) // 0x00表示连接成功
@@ -548,6 +735,11 @@ uint8_t MQTT_Connect(void)
             printf("连接失败, 返回码: %02X\r\n", esp.rxbuff[3]); // 打印错误码
         }
     }
+    else
+    {
+        printf("MQTT响应格式错误: %02X %02X %02X %02X\r\n",
+               esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+    }
     return 0; // 连接失败
 }
 
@@ -555,10 +747,11 @@ uint8_t MQTT_Connect(void)
  * @brief 发布MQTT消息（PUBLISH报文初始化）
  * @details 将传感器数据封装成JSON格式，通过MQTT PUBLISH报文发送到云端（OneNET平台）
  *          上报的参数包括：LED状态、温度、湿度、CO2、甲醛、光照等
+ * @return 1:发布成功 0:发布失败
  */
 #include "stdint.h" // 确保int32_t等类型可用
 
-void MQTT_Publish(void)
+uint8_t MQTT_Publish(void)
 {
     ESP_ClearRxBuffer();
     static uint8_t txbuff[512] = {0};
@@ -566,7 +759,7 @@ void MQTT_Publish(void)
     static char payload[512];
 
     // 1. 数值强转+范围校验（重点修复lig）
-    int led_status = 0; // 0:关 1:开
+
     double temp_val = (double)current_sensor_data.dht11data[0];
     int32_t hum_val = (int32_t)current_sensor_data.dht11data[1];
     float ch20_val = current_sensor_data.kqmdata[1];
@@ -579,7 +772,24 @@ void MQTT_Publish(void)
     // lig_val = roundf(lig_val);
 
     float voc_val = current_sensor_data.kqmdata[2];
-    
+
+    enum led_status
+    {
+        LED_STATUS_OFF = 0,
+        LED_STATUS_ON = 1,
+    };
+    // 2. 声明变量
+    enum led_status led_state; // 声明变量
+
+    // 3. 使用变量
+    if (GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_2) == Bit_SET)
+    {
+        led_state = LED_STATUS_OFF;
+    }
+    else
+    {
+        led_state = LED_STATUS_ON;
+    }
 
     // Debug: 打印lig_val的值确认非0
     // printf("Debug: lig_val = %.4f\r\n", lig_val);
@@ -596,7 +806,7 @@ void MQTT_Publish(void)
                      "\"temp_max\":{\"value\":26.0},"
                      "\"voc\":{\"value\":%.2f}"
                      "}}",
-            1,
+            led_state,
             temp_val,
             hum_val,
             (double)ch20_val, // ch20也强转double
@@ -618,18 +828,39 @@ void MQTT_Publish(void)
     // 发送PUBLISH报文
     Uart3_TxBuff(txbuff, len);
 
-    vTaskDelay(pdMS_TO_TICKS(1000)); // 释放CPU，让其他任务运行
+    // 等待ESP8266将数据通过TCP发送出去（重要！）
+    vTaskDelay(pdMS_TO_TICKS(100)); // 等待100ms
+
+    // 等待服务器响应（透传模式下需要等待数据接收）
+    uint16_t timeout = 200; // 2秒超时（10ms × 200）
+    while (timeout-- && esp.rxnum == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
+    }
 
     // 打印响应（用于调试）
-    // printf("MQTT Publish Resp: %02X %02X %02X %02X\r\n",
-    //        esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+    printf("MQTT Publish Resp: %02X %02X %02X %02X, rxnum=%d\r\n",
+           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3], esp.rxnum);
 
     // 解析PUBACK响应（QoS=1时服务器会返回PUBACK）
     // 格式：0x40 0x02 0x00(packet_id)
-    if (esp.rxbuff[0] == 0x40 && esp.rxbuff[1] == 0x02)
+    if (esp.rxnum > 0 && esp.rxbuff[0] == 0x40 && esp.rxbuff[1] == 0x02)
     {
         if (esp.rxbuff[3] == 0x11) // packet_id = 0x1111 的低字节
+        {
             printf("publish成功\r\n");
+            return 1; // 返回成功
+        }
+        else
+        {
+            printf("publish响应packet_id错误: %02X\r\n", esp.rxbuff[3]);
+            return 0; // 返回失败
+        }
+    }
+    else
+    {
+        printf("publish未收到PUBACK响应\r\n");
+        return 0; // 返回失败
     }
 }
 ///**
@@ -710,15 +941,23 @@ void MQTT_Subscribe(void)
     // 发送SUBSCRIBE报文
     Uart3_TxBuff(txbuff, len);
 
-    Delay_nms(1000); // 等待服务器响应
+    // 等待ESP8266将数据通过TCP发送出去（重要！）
+    vTaskDelay(pdMS_TO_TICKS(100)); // 等待100ms
+
+    // 等待服务器响应（透传模式下需要等待数据接收）
+    uint16_t timeout = 200; // 2秒超时（10ms × 200）
+    while (timeout-- && esp.rxnum == 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
+    }
 
     // 打印响应（用于调试）
-    printf("MQTT Subscribe Resp: %02X %02X %02X %02X\r\n",
-           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3]);
+    printf("MQTT Subscribe Resp: %02X %02X %02X %02X, rxnum=%d\r\n",
+           esp.rxbuff[0], esp.rxbuff[1], esp.rxbuff[2], esp.rxbuff[3], esp.rxnum);
 
     // 解析SUBACK响应
     // 格式：0x90 0x03 0x00(packet_id低字节) 0x00(packet_id高字节) 0x??(返回码)
-    if (esp.rxbuff[0] == 0x90 && esp.rxbuff[1] == 0x03)
+    if (esp.rxnum > 0 && esp.rxbuff[0] == 0x90 && esp.rxbuff[1] == 0x03)
     {
         if (esp.rxbuff[2] == 0x22 && esp.rxbuff[3] == 0x22) // packet_id = 0x2222
         {
@@ -727,6 +966,14 @@ void MQTT_Subscribe(void)
             else
                 printf("subscribe失败, 返回码: %02X\r\n", esp.rxbuff[4]);
         }
+        else
+        {
+            printf("subscribe响应packet_id错误: %02X %02X\r\n", esp.rxbuff[2], esp.rxbuff[3]);
+        }
+    }
+    else
+    {
+        printf("subscribe未收到SUBACK响应\r\n");
     }
 }
 /**
@@ -832,7 +1079,7 @@ uint8_t ESP_ParsePinduoduoData(void)
                 printf("Valid Time! Updating RTC to: %d\r\n", sec);
                 // 转换为北京时间（UTC+8）：加上8小时的秒数
                 RTC_UpData_Time(sec + 8 * 3600);
-                lv_scr_load(guider_ui.screen_data);
+
                 return 1; // 解析成功
             }
             else

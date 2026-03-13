@@ -573,38 +573,38 @@ int main(void)
     xReturned = xTaskCreate(
         LED1Task,         // 任务主体函数名称
         "led1",           // 任务的别名
-        64,               // 任务站空间  128*4
+        50,               // 任务站空间  128*4
         NULL,             // 任务主体函数传参
         1,                // 任务优先级
         &Led1TaskHandle); // 任务句柄
     // 创建LED2任务 - 低优先级后台任务
-    xReturned = xTaskCreate(LED2Task, "led2", 64, NULL, 1, &Led2TaskHandle);
+    xReturned = xTaskCreate(LED2Task, "led2", 50, NULL, 1, &Led2TaskHandle);
     // 创建LED3任务
     // xReturned = xTaskCreate(LED3Task, "led3", 64, NULL, 1, &Led3TaskHandle);
     // 创建LED4任务
     // xReturned = xTaskCreate(LED4Task, "led4", 64, NULL, 1, &Led4TaskHandle);
     // 创建key任务 - 中高优先级用户交互
-    xReturned = xTaskCreate(KeyTask, "key", 64, NULL, 3, &KeyTaskHandle);
+    xReturned = xTaskCreate(KeyTask, "key", 30, NULL, 3, &KeyTaskHandle);
     // 创建DHT11任务 - 中优先级传感器任务
-    xReturned = xTaskCreate(Dht11Task, "dht11", 80, NULL, 2, &Dht11TaskHandle);
+    xReturned = xTaskCreate(Dht11Task, "dht11", 70, NULL, 2, &Dht11TaskHandle);
     // 创建kqm任务 - 中优先级传感器任务
-    xReturned = xTaskCreate(KqmTask, "kqm", 80, NULL, 2, &KqmTaskHandle);
+    xReturned = xTaskCreate(KqmTask, "kqm", 70, NULL, 2, &KqmTaskHandle);
     // 创建光照任务 - 中优先级传感器任务
     xReturned = xTaskCreate(LightTask, "light", 80, NULL, 2, &LightTaskHandle);
     // 创建BH1750任务 - 中优先级传感器任务
-    xReturned = xTaskCreate(Bh1750Task, "bh1750", 80, NULL, 2, &Bh1750TaskHandle);
+    xReturned = xTaskCreate(Bh1750Task, "bh1750", 70, NULL, 2, &Bh1750TaskHandle);
     // 创建RTC时间更新任务 - 中优先级系统任务
-    xReturned = xTaskCreate(RTC_Task, "rtc", 128, NULL, 2, &RTC_TaskHandle);
+    xReturned = xTaskCreate(RTC_Task, "rtc", 98, NULL, 2, &RTC_TaskHandle);
     // 创建LCD任务 - 高优先级用户交互
-    xReturned = xTaskCreate(LCDTask, "lcd", 256, NULL, 4, &LCDTaskHandle);
+    xReturned = xTaskCreate(LCDTask, "lcd", 200, NULL, 4, &LCDTaskHandle);
     // 创建wifi任务 - 中低优先级通信任务
-    xReturned = xTaskCreate(WifiTask, "wifi", 512, NULL, 5, &WifiTaskHandle);
+    xReturned = xTaskCreate(WifiTask, "wifi", 512, NULL, 2, &WifiTaskHandle);
     // 创建lvgl任务 - 高优先级用户交互
-    xReturned = xTaskCreate(LVGLTask, "lvgl", 512, NULL, 4, &LVGLTaskHandle);
+    xReturned = xTaskCreate(LVGLTask, "lvgl", 400, NULL, 4, &LVGLTaskHandle);
     // 语音任务 - 中高优先级用户交互
-    xReturned = xTaskCreate(Su03tTask, "su03t", 256, NULL, 3, &Su03tTaskHandle);
+    xReturned = xTaskCreate(Su03tTask, "su03t", 64, NULL, 3, &Su03tTaskHandle);
     // 创建云数据解析任务 - 中低优先级通信任务
-    xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 256, NULL, 2, &YunDataHandleTaskHandle);
+    xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 64, NULL, 2, &YunDataHandleTaskHandle);
     // 启动rtos, 开始调度任务.
     vTaskStartScheduler();
 }

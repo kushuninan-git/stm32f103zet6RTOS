@@ -127,10 +127,10 @@ extern ESP esp;
 /**
  * @brief 拼多多服务器配置（用于获取网络时间）
  */
-#define PIN_SERVER_IP "api.pinduoduo.com"                                 ///< 拼多多API服务器IP
-#define PIN_SERVER_PORT "80"                                              ///< HTTP服务端口
-#define CMD_CIPSTATUS "AT+CIPSTATUS\r\n"                                  ///< 查询连接状态
-#define PIN_SERVER_GET "GET http://api.pinduoduo.com/api/server/_stm\r\n" ///< HTTP GET请求（获取服务器时间）
+#define PIN_SERVER_IP "api.pinduoduo.com"                                                                      ///< 拼多多API服务器IP
+#define PIN_SERVER_PORT "80"                                                                                   ///< HTTP服务端口
+#define CMD_CIPSTATUS "AT+CIPSTATUS\r\n"                                                                       ///< 查询连接状态
+#define PIN_SERVER_GET "GET /api/server/_stm HTTP/1.1\r\nHost: api.pinduoduo.com\r\nConnection: close\r\n\r\n" ///< HTTP GET请求（获取服务器时间）
 
 /**
  * @brief 建立TCP连接到拼多多服务器
@@ -181,7 +181,7 @@ void MQTT_PublishText(void);
  * @brief 发布MQTT消息（PUBLISH报文）
  * @details 将传感器数据发布到MQTT服务器（OneNET平台）
  */
-void MQTT_Publish(void);
+uint8_t MQTT_Publish(void);
 
 /**
  * @brief 发送MQTT心跳包
