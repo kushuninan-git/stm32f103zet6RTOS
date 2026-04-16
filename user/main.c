@@ -574,7 +574,7 @@ int main(void)
     // 创建LED4任务
     // xReturned = xTaskCreate(LED4Task, "led4", 64, NULL, 1, &Led4TaskHandle);
     // 创建key任务 - 中高优先级用户交互
-    xReturned = xTaskCreate(KeyTask, "key", 30, NULL, 3, &KeyTaskHandle);
+    xReturned = xTaskCreate(KeyTask, "key", 200, NULL, 3, &KeyTaskHandle);
     // 创建DHT11任务 - 中优先级传感器任务
     xReturned = xTaskCreate(Dht11Task, "dht11", 70, NULL, 2, &Dht11TaskHandle);
     // 创建kqm任务 - 中优先级传感器任务
@@ -592,7 +592,7 @@ int main(void)
     // 创建lvgl任务 - 高优先级用户交互
     xReturned = xTaskCreate(LVGLTask, "lvgl", 400, NULL, 4, &LVGLTaskHandle);
     // 语音任务 - 中高优先级用户交互
-    xReturned = xTaskCreate(Su03tTask, "su03t", 64, NULL, 3, &Su03tTaskHandle);
+    xReturned = xTaskCreate(Su03tTask, "su03t", 128, NULL, 3, &Su03tTaskHandle);
     // 创建云数据解析任务 - 中低优先级通信任务
     xReturned = xTaskCreate(YunDataHandleTask, "yunDataHandle", 128, NULL, 2, &YunDataHandleTaskHandle);
     // 启动rtos, 开始调度任务.

@@ -1,0 +1,408 @@
+version: "4.1"
+name: project
+type: ARM
+deviceName: null
+packDir: .pack/Keil/STM32F1xx_DFP.1.0.5
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: lib
+      files:
+        - path: STM32F10x_StdPeriph_Driver/src/misc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c
+        - path: STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c
+      folders: []
+    - name: startup
+      files:
+        - path: startup/startup_stm32f10x_hd.s
+      folders: []
+    - name: mqtt
+      files:
+        - path: Mqtt/MQTTConnectClient.c
+        - path: Mqtt/MQTTConnectServer.c
+        - path: Mqtt/MQTTDeserializePublish.c
+        - path: Mqtt/MQTTFormat.c
+        - path: Mqtt/MQTTPacket.c
+        - path: Mqtt/MQTTSerializePublish.c
+        - path: Mqtt/MQTTSubscribeClient.c
+        - path: Mqtt/MQTTSubscribeServer.c
+        - path: Mqtt/MQTTUnsubscribeClient.c
+        - path: Mqtt/MQTTUnsubscribeServer.c
+      folders: []
+    - name: user
+      files:
+        - path: user/main.c
+        - path: user/stm32f10x_it.c
+        - path: user/system_stm32f10x.c
+        - path: FreeTROS/FreeRTOSConfig.h
+      folders: []
+    - name: api
+      files:
+        - path: user/api/src/bep.c
+        - path: user/api/src/delay.c
+        - path: user/api/src/key.c
+        - path: user/api/src/led.c
+        - path: user/api/src/relay.c
+        - path: user/api/src/rgb.c
+        - path: user/api/src/pwm.c
+        - path: user/api/src/kqm.c
+        - path: user/api/src/su_03t.c
+        - path: user/api/src/dht11.c
+        - path: user/api/src/bh1750.c
+        - path: user/api/src/Myi2c_bh1750.c
+        - path: user/api/src/rtc.c
+        - path: user/api/src/flash.c
+        - path: user/api/src/bsp_lcd.c
+        - path: user/api/src/light.c
+        - path: user/api/src/usart1.c
+        - path: user/api/src/esp8266.c
+        - path: user/api/src/tim.c
+        - path: user/api/src/jx_uart_send.c
+      folders: []
+    - name: rtos
+      files: []
+      folders:
+        - name: src
+          files:
+            - path: FreeTROS/src/croutine.c
+            - path: FreeTROS/src/event_groups.c
+            - path: FreeTROS/src/list.c
+            - path: FreeTROS/src/queue.c
+            - path: FreeTROS/src/stream_buffer.c
+            - path: FreeTROS/src/tasks.c
+            - path: FreeTROS/src/timers.c
+          folders: []
+        - name: port
+          files:
+            - path: FreeTROS/port/MemMang/heap_4.c
+            - path: FreeTROS/port/RVDS/ARM_CM3/port.c
+          folders: []
+    - name: Lvgl
+      files: []
+      folders:
+        - name: app
+          files:
+            - path: LVGL/app/events_init.c
+            - path: LVGL/app/gui_guider.c
+            - path: LVGL/app/setup_scr_screen_data.c
+            - path: LVGL/app/setup_scr_screen_open.c
+            - path: LVGL/app/setup_scr_screen_wifi.c
+            - path: LVGL/app/images/_beijing_alpha_240x320.c
+            - path: LVGL/app/images/_ch2o_alpha_30x30.c
+            - path: LVGL/app/images/_co2_alpha_30x30.c
+            - path: LVGL/app/images/_hum_alpha_30x30.c
+            - path: LVGL/app/images/_light_alpha_50x50.c
+            - path: LVGL/app/images/_noWIFI_alpha_20x20.c
+            - path: LVGL/app/images/_tem_alpha_30x30.c
+            - path: LVGL/app/images/_voc_alpha_30x30.c
+            - path: LVGL/app/images/_wifi_alpha_20x20.c
+            - path: LVGL/app/images/_yanwu_alpha_60x30.c
+            - path: LVGL/app/images/_zhutou_alpha_100x100.c
+            - path: LVGL/app/guider_fonts/lv_font_ArchitectsDaughter_16.c
+            - path: LVGL/app/guider_fonts/lv_font_SIMLI_16.c
+            - path: LVGL/app/guider_fonts/lv_font_SIMLI_25.c
+            - path: LVGL/app/guider_fonts/lv_font_simsun_12.c
+            - path: LVGL/app/guider_fonts/lv_font_simsun_16.c
+            - path: LVGL/app/lvgl_font20.c
+          folders: []
+        - name: porting
+          files:
+            - path: LVGL/lv_conf.h
+            - path: LVGL/porting/lv_port_disp.c
+          folders: []
+        - name: src
+          files:
+            - path: LVGL/src/lv_core/lv_disp.c
+            - path: LVGL/src/lv_core/lv_group.c
+            - path: LVGL/src/lv_core/lv_indev.c
+            - path: LVGL/src/lv_core/lv_obj.c
+            - path: LVGL/src/lv_core/lv_refr.c
+            - path: LVGL/src/lv_core/lv_style.c
+            - path: LVGL/src/lv_draw/lv_draw_arc.c
+            - path: LVGL/src/lv_draw/lv_draw_blend.c
+            - path: LVGL/src/lv_draw/lv_draw_img.c
+            - path: LVGL/src/lv_draw/lv_draw_label.c
+            - path: LVGL/src/lv_draw/lv_draw_line.c
+            - path: LVGL/src/lv_draw/lv_draw_mask.c
+            - path: LVGL/src/lv_draw/lv_draw_rect.c
+            - path: LVGL/src/lv_draw/lv_draw_triangle.c
+            - path: LVGL/src/lv_draw/lv_img_buf.c
+            - path: LVGL/src/lv_draw/lv_img_cache.c
+            - path: LVGL/src/lv_draw/lv_img_decoder.c
+            - path: LVGL/src/lv_font/lv_font.c
+            - path: LVGL/src/lv_font/lv_font_dejavu_16_persian_hebrew.c
+            - path: LVGL/src/lv_font/lv_font_fmt_txt.c
+            - path: LVGL/src/lv_font/lv_font_loader.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_8.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_10.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_12.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_12_subpx.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_14.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_16.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_18.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_20.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_22.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_24.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_26.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_28.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_28_compressed.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_30.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_32.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_34.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_36.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_38.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_40.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_42.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_44.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_46.c
+            - path: LVGL/src/lv_font/lv_font_montserrat_48.c
+            - path: LVGL/src/lv_font/lv_font_simsun_16_cjk.c
+            - path: LVGL/src/lv_font/lv_font_unscii_8.c
+            - path: LVGL/src/lv_font/lv_font_unscii_16.c
+            - path: LVGL/src/lv_hal/lv_hal_disp.c
+            - path: LVGL/src/lv_hal/lv_hal_indev.c
+            - path: LVGL/src/lv_hal/lv_hal_tick.c
+            - path: LVGL/src/lv_misc/lv_anim.c
+            - path: LVGL/src/lv_misc/lv_area.c
+            - path: LVGL/src/lv_misc/lv_async.c
+            - path: LVGL/src/lv_misc/lv_bidi.c
+            - path: LVGL/src/lv_misc/lv_color.c
+            - path: LVGL/src/lv_misc/lv_debug.c
+            - path: LVGL/src/lv_misc/lv_fs.c
+            - path: LVGL/src/lv_misc/lv_gc.c
+            - path: LVGL/src/lv_misc/lv_ll.c
+            - path: LVGL/src/lv_misc/lv_log.c
+            - path: LVGL/src/lv_misc/lv_math.c
+            - path: LVGL/src/lv_misc/lv_mem.c
+            - path: LVGL/src/lv_misc/lv_printf.c
+            - path: LVGL/src/lv_misc/lv_task.c
+            - path: LVGL/src/lv_misc/lv_templ.c
+            - path: LVGL/src/lv_misc/lv_txt.c
+            - path: LVGL/src/lv_misc/lv_txt_ap.c
+            - path: LVGL/src/lv_misc/lv_utils.c
+            - path: LVGL/src/lv_themes/lv_theme.c
+            - path: LVGL/src/lv_themes/lv_theme_empty.c
+            - path: LVGL/src/lv_themes/lv_theme_material.c
+            - path: LVGL/src/lv_themes/lv_theme_mono.c
+            - path: LVGL/src/lv_themes/lv_theme_template.c
+            - path: LVGL/src/lv_widgets/lv_arc.c
+            - path: LVGL/src/lv_widgets/lv_bar.c
+            - path: LVGL/src/lv_widgets/lv_btn.c
+            - path: LVGL/src/lv_widgets/lv_btnmatrix.c
+            - path: LVGL/src/lv_widgets/lv_calendar.c
+            - path: LVGL/src/lv_widgets/lv_canvas.c
+            - path: LVGL/src/lv_widgets/lv_chart.c
+            - path: LVGL/src/lv_widgets/lv_checkbox.c
+            - path: LVGL/src/lv_widgets/lv_cont.c
+            - path: LVGL/src/lv_widgets/lv_cpicker.c
+            - path: LVGL/src/lv_widgets/lv_dropdown.c
+            - path: LVGL/src/lv_widgets/lv_gauge.c
+            - path: LVGL/src/lv_widgets/lv_img.c
+            - path: LVGL/src/lv_widgets/lv_imgbtn.c
+            - path: LVGL/src/lv_widgets/lv_keyboard.c
+            - path: LVGL/src/lv_widgets/lv_label.c
+            - path: LVGL/src/lv_widgets/lv_led.c
+            - path: LVGL/src/lv_widgets/lv_line.c
+            - path: LVGL/src/lv_widgets/lv_linemeter.c
+            - path: LVGL/src/lv_widgets/lv_list.c
+            - path: LVGL/src/lv_widgets/lv_msgbox.c
+            - path: LVGL/src/lv_widgets/lv_objmask.c
+            - path: LVGL/src/lv_widgets/lv_objx_templ.c
+            - path: LVGL/src/lv_widgets/lv_page.c
+            - path: LVGL/src/lv_widgets/lv_roller.c
+            - path: LVGL/src/lv_widgets/lv_slider.c
+            - path: LVGL/src/lv_widgets/lv_spinbox.c
+            - path: LVGL/src/lv_widgets/lv_spinner.c
+            - path: LVGL/src/lv_widgets/lv_switch.c
+            - path: LVGL/src/lv_widgets/lv_table.c
+            - path: LVGL/src/lv_widgets/lv_tabview.c
+            - path: LVGL/src/lv_widgets/lv_textarea.c
+            - path: LVGL/src/lv_widgets/lv_tileview.c
+            - path: LVGL/src/lv_widgets/lv_win.c
+          folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: fbe57c51aa115ee3515bb20d4fffc33b
+targets:
+  Target 1:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F10X_HD
+        - USE_STDPERIPH_DRIVER
+      incList:
+        - .
+        - user/api/inc
+        - user
+        - STM32F10x_StdPeriph_Driver/inc
+        - E:/keil-527/Packs/ARM/CMSIS/5.5.1/CMSIS/Core/Include
+        - Mqtt
+        - FreeTROS/inc
+        - FreeTROS/port/RVDS/ARM_CM3
+        - FreeTROS
+        - LVGL
+        - LVGL/porting
+        - LVGL/app
+        - LVGL/src
+        - LVGL/src/lv_core
+        - LVGL/src/lv_draw
+        - LVGL/src/lv_font
+        - LVGL/src/lv_hal
+        - LVGL/src/lv_misc
+        - LVGL/src/lv_themes
+        - LVGL/src/lv_widgets
+        - LVGL/src/lv_gpu
+        - LVGL/app/guider_customer_fonts
+        - LVGL/app/guider_fonts
+        - LVGL/app/images
+        - .cmsis/include
+        - RTE/_Target 1
+      libList: []
+    excludeList: []
+    settings: {}
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M3
+        floatingPointHardware: none
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            gnu-extensions: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: no-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x10000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: stlink
+        target: stm32f1x
+    uploader: OpenOCD
