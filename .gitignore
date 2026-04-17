@@ -1,5 +1,7 @@
 # dot files
 /.vscode/launch.json
+/.vscode/*.log
+/.vscode/*.lock
 /.settings
 /.eide/log
 /.eide.usr.ctx.json
@@ -9,7 +11,15 @@
 /bin
 /obj
 /out
+/Listings/
+/Objects/
 
 # eide template
 *.ept
 *.eide-template
+
+# tool caches and logs
+*.log
+*.tmp
+*.temp
+*.bak
